@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: oat
+      POSTGRES_PASSWORD: oat
+      POSTGRES_DB: oat
+    ports:
+      - "5432:5432"
+    volumes:
+      - oat-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oat"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://oat:oat@postgres:5432/oat
+      PORT: "3001"
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      SERVER_URL: http://server:3001
+      SEED_PROJECT_ID: "${SEED_PROJECT_ID}"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+
+volumes:
+  oat-pg:
