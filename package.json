@@ -1,0 +1,17 @@
+{
+  "name": "openagenttelemetry",
+  "private": true,
+  "version": "0.0.0",
+  "description": "开源 AI Agent 可观测性平台",
+  "scripts": {
+    "dev:server": "pnpm --filter @oat/server dev",
+    "dev:web": "pnpm --filter @oat/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "packageManager": "pnpm@11.10.0"
+}
