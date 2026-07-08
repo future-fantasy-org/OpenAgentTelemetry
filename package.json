@@ -7,8 +7,8 @@
     "dev:server": "pnpm --filter @oat/server dev",
     "dev:web": "pnpm --filter @oat/web dev",
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "lint": "pnpm -r lint"
+    "test": "pnpm -r --config.verify-deps-before-run=false test",
+    "lint": "pnpm -r --config.verify-deps-before-run=false lint"
   },
   "devDependencies": {
     "typescript": "^5.4.0"
