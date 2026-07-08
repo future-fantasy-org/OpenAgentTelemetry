@@ -1,3 +1,10 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+allowBuilds:
+  esbuild: set this to true or false
+
+# pnpm 11: 在此声明允许运行构建脚本的依赖（从 package.json 的 pnpm 字段迁移而来）
+onlyBuiltDependencies:
+  - esbuild
