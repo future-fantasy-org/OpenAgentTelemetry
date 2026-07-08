@@ -25,3 +25,9 @@ docs/
 | 文档 | 说明 |
 |------|------|
 | [OpenAgentTelemetry 平台设计规格](./specs/2026-07-09-openagenttelemetry-platform-design.md) | 平台整体设计：技术栈、架构、数据模型、数据流、SDK 设计、仓库结构、MVP 分期、错误处理与测试策略 |
+
+### 实现计划（plans/）
+
+| 文档 | 说明 |
+|------|------|
+| [M1：骨架打通](./plans/2026-07-09-m1-skeleton.md) | MVP 第一里程碑：pnpm 脚手架 → shared 类型 → Drizzle schema → Repository → Fastify Ingestion API → TS SDK → Next.js 列表页 → docker-compose 端到端验证 |
