@@ -22,4 +22,6 @@ docs/
 
 ### 设计规格（specs/）
 
-> 待补充。设计方案确定后，将存放于 `specs/YYYY-MM-DD-<topic>-design.md`。
+| 文档 | 说明 |
+|------|------|
+| [OpenAgentTelemetry 平台设计规格](./specs/2026-07-09-openagenttelemetry-platform-design.md) | 平台整体设计：技术栈、架构、数据模型、数据流、SDK 设计、仓库结构、MVP 分期、错误处理与测试策略 |
