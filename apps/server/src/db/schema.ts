@@ -4,6 +4,9 @@ import { pgTable, uuid, text, timestamp, jsonb, integer, numeric, pgEnum } from 
 export const observationTypeEnum = pgEnum('observation_type', ['span', 'event', 'generation']);
 export const observationLevelEnum = pgEnum('observation_level', ['debug', 'info', 'warning', 'error']);
 
+// 枚举：评分来源
+export const scoreSourceEnum = pgEnum('score_source', ['user', 'api', 'eval_job']);
+
 // projects：数据隔离边界
 export const projects = pgTable('projects', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -44,4 +47,37 @@ export const observations = pgTable('observations', {
   totalCost: numeric('total_cost', { precision: 12, scale: 6 }),
   level: observationLevelEnum('level'),
   metadata: jsonb('metadata'),
+});
+
+// scores：评估打分（可对 trace 或 observation 打分）
+export const scores = pgTable('scores', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  traceId: uuid('trace_id').references(() => traces.id),
+  observationId: uuid('observation_id'),
+  name: text('name').notNull(),
+  value: numeric('value', { precision: 12, scale: 6 }).notNull(),
+  comment: text('comment'),
+  source: scoreSourceEnum('source').default('api').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// datasets：测试集
+export const datasets = pgTable('datasets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// dataset_items：测试样例
+export const datasetItems = pgTable('dataset_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  datasetId: uuid('dataset_id').notNull().references(() => datasets.id),
+  input: jsonb('input').notNull(),
+  expectedOutput: jsonb('expected_output'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

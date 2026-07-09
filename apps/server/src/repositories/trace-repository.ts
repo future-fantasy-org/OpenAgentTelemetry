@@ -5,6 +5,7 @@ import type { Observation } from '@oat/shared';
 // 接口定义：业务层依赖接口而非实现（为未来换存储预留）
 export interface ITraceRepository {
   listTraces(projectId: string, limit: number): Promise<TraceListItem[]>;
+  getTraceDetail(traceId: string): Promise<TraceDetail | null>;
   createTraceWithObservations(trace: NewTrace, observations: Observation[]): Promise<void>;
 }
 
@@ -14,6 +15,35 @@ export type TraceListItem = {
   userId: string | null;
   sessionId: string | null;
   timestamp: Date;
+};
+
+export type ObservationDetail = {
+  id: string;
+  parentId: string | null;
+  type: string;
+  name: string;
+  startTime: Date;
+  endTime: Date | null;
+  input: unknown;
+  output: unknown;
+  model: string | null;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalCost: string | null;
+  level: string | null;
+  metadata: unknown;
+};
+
+export type TraceDetail = {
+  id: string;
+  name: string;
+  userId: string | null;
+  sessionId: string | null;
+  input: unknown;
+  output: unknown;
+  metadata: unknown;
+  timestamp: Date;
+  observations: ObservationDetail[];
 };
 
 export type NewTrace = {
@@ -43,6 +73,53 @@ export class PostgresTraceRepository implements ITraceRepository {
       .orderBy(desc(schema.traces.timestamp))
       .limit(limit);
     return rows;
+  }
+
+  async getTraceDetail(traceId: string): Promise<TraceDetail | null> {
+    // 先查 trace 本身
+    const [trace] = await db
+      .select()
+      .from(schema.traces)
+      .where(eq(schema.traces.id, traceId))
+      .limit(1);
+
+    if (!trace) return null;
+
+    // 再查它下面的所有 observation，按 startTime 排序（瀑布图需要时间顺序）
+    const obsRows = await db
+      .select()
+      .from(schema.observations)
+      .where(eq(schema.observations.traceId, traceId))
+      .orderBy(schema.observations.startTime);
+
+    const observations: ObservationDetail[] = obsRows.map((o) => ({
+      id: o.id,
+      parentId: o.parentId,
+      type: o.type,
+      name: o.name,
+      startTime: o.startTime,
+      endTime: o.endTime,
+      input: o.input,
+      output: o.output,
+      model: o.model,
+      promptTokens: o.promptTokens,
+      completionTokens: o.completionTokens,
+      totalCost: o.totalCost,
+      level: o.level,
+      metadata: o.metadata,
+    }));
+
+    return {
+      id: trace.id,
+      name: trace.name,
+      userId: trace.userId,
+      sessionId: trace.sessionId,
+      input: trace.input,
+      output: trace.output,
+      metadata: trace.metadata,
+      timestamp: trace.timestamp,
+      observations,
+    };
   }
 
   async createTraceWithObservations(trace: NewTrace, observations: Observation[]): Promise<void> {

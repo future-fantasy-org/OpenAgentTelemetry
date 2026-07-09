@@ -1,13 +1,21 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
-import type { ITraceRepository, IProjectRepository, TraceListItem } from '../src/repositories/index.js';
+import type {
+  ITraceRepository,
+  IProjectRepository,
+  IScoreRepository,
+  IDatasetRepository,
+  TraceListItem,
+  TraceDetail,
+} from '../src/repositories/index.js';
 
 // 内存 mock：记录被调用的数据，方便断言
 function makeMockRepos(listReturn: TraceListItem[] = []) {
   const stored: Array<{ trace: unknown; obs: unknown[] }> = [];
   const traceRepo: ITraceRepository = {
     async listTraces() { return listReturn; },
+    async getTraceDetail(): Promise<TraceDetail | null> { return null; },
     async createTraceWithObservations(trace, obs) { stored.push({ trace, obs }); },
   };
   const projectRepo: IProjectRepository = {
@@ -15,7 +23,18 @@ function makeMockRepos(listReturn: TraceListItem[] = []) {
       return key === 'valid-key' ? { id: 'proj-1', name: 'test' } : null;
     },
   };
-  return { traceRepo, projectRepo, stored };
+  const scoreRepo: IScoreRepository = {
+    async createScore() { return 'score-1'; },
+    async listScoresByTrace() { return []; },
+  };
+  const datasetRepo: IDatasetRepository = {
+    async createDataset() { return 'ds-1'; },
+    async listDatasets() { return []; },
+    async getDataset() { return null; },
+    async addDatasetItem() { return 'item-1'; },
+    async listDatasetItems() { return []; },
+  };
+  return { traceRepo, projectRepo, scoreRepo, datasetRepo, stored };
 }
 
 describe('Ingestion API', () => {
@@ -74,19 +93,42 @@ describe('Traces 查询 API', () => {
     const listTraceReturn: TraceListItem[] = [
       { id: 't1', name: 'trace1', userId: null, sessionId: null, timestamp: new Date() },
     ];
-    const traceRepo: ITraceRepository = {
-      async listTraces() { return listTraceReturn; },
-      async createTraceWithObservations() {},
-    };
-    const projectRepo: IProjectRepository = {
-      async findByApiKey(k: string) { return k === 'valid-key' ? { id: 'proj-1', name: 't' } : null; },
-    };
-    const app = await buildApp({ traceRepo, projectRepo });
+    const mocks = makeMockRepos(listTraceReturn);
+    const app = await buildApp(mocks);
 
     const res = await app.inject({ method: 'GET', url: '/api/traces?projectId=00000000-0000-0000-0000-000000000000' });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.payload);
     expect(body.traces).toHaveLength(1);
     expect(body.traces[0].name).toBe('trace1');
+  });
+});
+
+describe('Trace 详情 API', () => {
+  it('存在时返回 trace + observations', async () => {
+    const detail: TraceDetail = {
+      id: 't1', name: 'test', userId: null, sessionId: null,
+      input: null, output: null, metadata: null, timestamp: new Date(),
+      observations: [
+        { id: 'o1', parentId: null, type: 'span', name: 'step1', startTime: new Date(), endTime: new Date(),
+          input: null, output: null, model: null, promptTokens: null, completionTokens: null, totalCost: null, level: 'info', metadata: null },
+      ],
+    };
+    const mocks = makeMockRepos();
+    mocks.traceRepo.getTraceDetail = async () => detail;
+    const app = await buildApp(mocks);
+
+    const res = await app.inject({ method: 'GET', url: '/api/traces/t1' });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.payload);
+    expect(body.observations).toHaveLength(1);
+    expect(body.observations[0].name).toBe('step1');
+  });
+
+  it('不存在时返回 404', async () => {
+    const mocks = makeMockRepos();
+    const app = await buildApp(mocks);
+    const res = await app.inject({ method: 'GET', url: '/api/traces/nonexistent' });
+    expect(res.statusCode).toBe(404);
   });
 });

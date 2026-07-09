@@ -1,10 +1,17 @@
 import { buildApp } from './app.js';
-import { PostgresTraceRepository, PostgresProjectRepository } from './repositories/index.js';
+import {
+  PostgresTraceRepository,
+  PostgresProjectRepository,
+  PostgresScoreRepository,
+  PostgresDatasetRepository,
+} from './repositories/index.js';
 
 async function main() {
   const app = await buildApp({
     traceRepo: new PostgresTraceRepository(),
     projectRepo: new PostgresProjectRepository(),
+    scoreRepo: new PostgresScoreRepository(),
+    datasetRepo: new PostgresDatasetRepository(),
   });
 
   const port = Number(process.env.PORT ?? 3001);

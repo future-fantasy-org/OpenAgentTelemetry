@@ -1,2 +1,8 @@
-export * from './trace-repository.js';
-export * from './project-repository.js';
+export { PostgresTraceRepository } from './trace-repository.js';
+export type { ITraceRepository, TraceListItem, TraceDetail, ObservationDetail, NewTrace } from './trace-repository.js';
+export { PostgresProjectRepository } from './project-repository.js';
+export type { IProjectRepository } from './project-repository.js';
+export { PostgresScoreRepository } from './score-repository.js';
+export type { IScoreRepository, NewScore, ScoreItem } from './score-repository.js';
+export { PostgresDatasetRepository } from './dataset-repository.js';
+export type { IDatasetRepository, DatasetItem, DatasetDetail, DatasetRow } from './dataset-repository.js';
