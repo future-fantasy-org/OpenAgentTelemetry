@@ -27,6 +27,11 @@ services:
     environment:
       DATABASE_URL: postgresql://oat:oat@postgres:5432/oat
       PORT: "3001"
+      # JWT 签名密钥：必填，生产环境务必改成随机长字符串
+      JWT_SECRET: "${JWT_SECRET:-dev-secret-change-me}"
+      # 引导管理员：server 启动时若 users 表无此 email 则自动创建（幂等）
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@oat.dev}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-admin123}"
     ports:
       - "3001:3001"
     depends_on:

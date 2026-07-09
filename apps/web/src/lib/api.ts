@@ -123,7 +123,19 @@ const API_BASE = typeof window === 'undefined'
   : '';
 
 async function get(url: string) {
-  const res = await fetch(url, { cache: 'no-store' });
+  // credentials:'include' 让 fetch 带上 cookie（登录后存的 oat_session）
+  const res = await fetch(url, { cache: 'no-store', credentials: 'include' });
+  if (!res.ok) throw new Error(`请求失败: ${res.status}`);
+  return res.json();
+}
+
+async function post(url: string, body: unknown) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    credentials: 'include',
+  });
   if (!res.ok) throw new Error(`请求失败: ${res.status}`);
   return res.json();
 }
@@ -158,4 +170,19 @@ export async function getPromptDetail(id: string): Promise<{ prompt: PromptDetai
 
 export async function getStatsOverview(projectId: string, range: string): Promise<StatsOverview> {
   return get(`${API_BASE}/api/stats/overview?projectId=${projectId}&range=${range}`);
+}
+
+// ---- Auth ----
+export type AuthUser = { id: string; email: string; role: string };
+
+export async function login(email: string, password: string): Promise<{ user: AuthUser }> {
+  return post(`${API_BASE}/api/auth/login`, { email, password });
+}
+
+export async function logout(): Promise<{ ok: boolean }> {
+  return post(`${API_BASE}/api/auth/logout`, {});
+}
+
+export async function getMe(): Promise<{ user: AuthUser }> {
+  return get(`${API_BASE}/api/auth/me`);
 }

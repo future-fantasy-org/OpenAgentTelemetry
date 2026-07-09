@@ -106,3 +106,14 @@ export const promptVersions = pgTable('prompt_versions', {
 }, (t) => ({
   promptVersionIdx: uniqueIndex('prompt_versions_prompt_id_version_idx').on(t.promptId, t.version),
 }));
+
+// users：单管理员认证。M6 只一张表，未来多用户时再加 organization/members 等
+// role 字段预留：当前只有 admin，未来可扩展 viewer 等
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  role: text('role').default('admin').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});

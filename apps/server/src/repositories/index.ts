@@ -10,3 +10,5 @@ export { PostgresPromptRepository } from './prompt-repository.js';
 export type { IPromptRepository, PromptListItem, PromptVersion, PromptDetail } from './prompt-repository.js';
 export { PostgresStatsRepository } from './stats-repository.js';
 export type { IStatsRepository, StatsOverview, StatsPoint, StatsSummary, TopModel, ScoreDistributionItem } from './stats-repository.js';
+export { PostgresUserRepository } from './user-repository.js';
+export type { IUserRepository, User } from './user-repository.js';

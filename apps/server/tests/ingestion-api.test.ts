@@ -8,9 +8,21 @@ import type {
   IDatasetRepository,
   IPromptRepository,
   IStatsRepository,
+  IUserRepository,
   TraceListItem,
   TraceDetail,
 } from '../src/repositories/index.js';
+
+// 测试需要一个 JWT_SECRET 才能签发/校验 token（requireAuth preHandler 依赖它）
+process.env.JWT_SECRET = 'test-secret';
+
+import { signToken } from '../src/auth/jwt.js';
+
+// 受保护路由测试用：签一个合法 token，注入到请求的 cookie 里
+async function authHeaders(): Promise<{ cookie: string }> {
+  const token = await signToken({ userId: 'u-test', email: 'test@oat.dev', role: 'admin' });
+  return { cookie: `oat_session=${token}` };
+}
 
 // 内存 mock：记录被调用的数据，方便断言
 function makeMockRepos(listReturn: TraceListItem[] = []) {
@@ -49,7 +61,13 @@ function makeMockRepos(listReturn: TraceListItem[] = []) {
       return { range: '24h', series: [], summary: { totalTraces: 0, totalTokens: 0, totalCost: '0', avgLatencyMs: null }, topModels: [], scoreDistribution: [] };
     },
   };
-  return { traceRepo, projectRepo, scoreRepo, datasetRepo, promptRepo, statsRepo, stored };
+  const userRepo: IUserRepository = {
+    async findByEmail() { return null; },
+    async create(email, passwordHash) {
+      return { id: 'u-1', email, passwordHash, role: 'admin', createdAt: new Date(), updatedAt: new Date() };
+    },
+  };
+  return { traceRepo, projectRepo, scoreRepo, datasetRepo, promptRepo, statsRepo, userRepo, stored };
 }
 
 describe('Ingestion API', () => {
@@ -111,7 +129,7 @@ describe('Traces 查询 API', () => {
     const mocks = makeMockRepos(listTraceReturn);
     const app = await buildApp(mocks);
 
-    const res = await app.inject({ method: 'GET', url: '/api/traces?projectId=00000000-0000-0000-0000-000000000000' });
+    const res = await app.inject({ method: 'GET', url: '/api/traces?projectId=00000000-0000-0000-0000-000000000000', headers: await authHeaders() });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.payload);
     expect(body.traces).toHaveLength(1);
@@ -133,7 +151,7 @@ describe('Trace 详情 API', () => {
     mocks.traceRepo.getTraceDetail = async () => detail;
     const app = await buildApp(mocks);
 
-    const res = await app.inject({ method: 'GET', url: '/api/traces/t1' });
+    const res = await app.inject({ method: 'GET', url: '/api/traces/t1', headers: await authHeaders() });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.payload);
     expect(body.observations).toHaveLength(1);
@@ -143,7 +161,39 @@ describe('Trace 详情 API', () => {
   it('不存在时返回 404', async () => {
     const mocks = makeMockRepos();
     const app = await buildApp(mocks);
-    const res = await app.inject({ method: 'GET', url: '/api/traces/nonexistent' });
+    const res = await app.inject({ method: 'GET', url: '/api/traces/nonexistent', headers: await authHeaders() });
     expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('Auth 鉴权', () => {
+  it('受保护路由不带 cookie 返回 401', async () => {
+    const mocks = makeMockRepos();
+    const app = await buildApp(mocks);
+    const res = await app.inject({ method: 'GET', url: '/api/traces?projectId=x' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('受保护路由带合法 cookie 返回 200', async () => {
+    const mocks = makeMockRepos([]);
+    const app = await buildApp(mocks);
+    const res = await app.inject({ method: 'GET', url: '/api/traces?projectId=00000000-0000-0000-0000-000000000000', headers: await authHeaders() });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('/api/public/ingestion 不受 cookie 鉴权影响（走 Bearer）', async () => {
+    const mocks = makeMockRepos();
+    const app = await buildApp(mocks);
+    // 不带任何 cookie，只带 Bearer key，应该能通过
+    const res = await app.inject({
+      method: 'POST', url: '/api/public/ingestion',
+      headers: { authorization: 'Bearer valid-key' },
+      payload: {
+        batch: [
+          { id: 'o1', traceId: 't1', parentId: null, type: 'span', name: 'root', startTime: '2026-07-09T00:00:00Z' },
+        ],
+      },
+    });
+    expect(res.statusCode).toBe(202);
   });
 });
