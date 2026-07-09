@@ -80,6 +80,44 @@ export type PromptDetail = {
   updatedAt: string;
 };
 
+export type StatsPoint = {
+  bucket: string;
+  traceCount: number;
+  p50LatencyMs: number | null;
+  p90LatencyMs: number | null;
+  p99LatencyMs: number | null;
+  promptTokens: number;
+  completionTokens: number;
+  totalCost: string;
+};
+
+export type StatsSummary = {
+  totalTraces: number;
+  totalTokens: number;
+  totalCost: string;
+  avgLatencyMs: number | null;
+};
+
+export type TopModel = {
+  model: string;
+  count: number;
+  cost: string;
+};
+
+export type ScoreDistributionItem = {
+  name: string;
+  avgValue: number;
+  count: number;
+};
+
+export type StatsOverview = {
+  range: string;
+  series: StatsPoint[];
+  summary: StatsSummary;
+  topModels: TopModel[];
+  scoreDistribution: ScoreDistributionItem[];
+};
+
 const API_BASE = typeof window === 'undefined'
   ? (process.env.SERVER_URL ?? 'http://localhost:3001')
   : '';
@@ -116,4 +154,8 @@ export async function listPrompts(projectId: string): Promise<PromptListItem[]> 
 
 export async function getPromptDetail(id: string): Promise<{ prompt: PromptDetail; versions: PromptVersion[] }> {
   return get(`${API_BASE}/api/prompts/${id}`);
+}
+
+export async function getStatsOverview(projectId: string, range: string): Promise<StatsOverview> {
+  return get(`${API_BASE}/api/stats/overview?projectId=${projectId}&range=${range}`);
 }

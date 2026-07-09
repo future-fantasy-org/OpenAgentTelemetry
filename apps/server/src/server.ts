@@ -5,6 +5,7 @@ import {
   PostgresScoreRepository,
   PostgresDatasetRepository,
   PostgresPromptRepository,
+  PostgresStatsRepository,
 } from './repositories/index.js';
 
 async function main() {
@@ -14,6 +15,7 @@ async function main() {
     scoreRepo: new PostgresScoreRepository(),
     datasetRepo: new PostgresDatasetRepository(),
     promptRepo: new PostgresPromptRepository(),
+    statsRepo: new PostgresStatsRepository(),
   });
 
   const port = Number(process.env.PORT ?? 3001);

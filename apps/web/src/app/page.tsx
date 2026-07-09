@@ -17,6 +17,7 @@ export default async function HomePage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Traces</h1>
         <nav className="flex gap-4 text-sm">
+          <Link href="/dashboard" className="text-blue-600 hover:underline">Dashboard</Link>
           <Link href="/datasets" className="text-blue-600 hover:underline">数据集</Link>
           <Link href="/prompts" className="text-blue-600 hover:underline">Prompt 管理</Link>
         </nav>

@@ -7,6 +7,7 @@ import type {
   IScoreRepository,
   IDatasetRepository,
   IPromptRepository,
+  IStatsRepository,
   TraceListItem,
   TraceDetail,
 } from '../src/repositories/index.js';
@@ -43,7 +44,12 @@ function makeMockRepos(listReturn: TraceListItem[] = []) {
     async addVersion() { return 2; },
     async listVersions() { return []; },
   };
-  return { traceRepo, projectRepo, scoreRepo, datasetRepo, promptRepo, stored };
+  const statsRepo: IStatsRepository = {
+    async getOverview() {
+      return { range: '24h', series: [], summary: { totalTraces: 0, totalTokens: 0, totalCost: '0', avgLatencyMs: null }, topModels: [], scoreDistribution: [] };
+    },
+  };
+  return { traceRepo, projectRepo, scoreRepo, datasetRepo, promptRepo, statsRepo, stored };
 }
 
 describe('Ingestion API', () => {
