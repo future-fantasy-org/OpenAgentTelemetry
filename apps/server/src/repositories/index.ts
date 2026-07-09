@@ -6,3 +6,5 @@ export { PostgresScoreRepository } from './score-repository.js';
 export type { IScoreRepository, NewScore, ScoreItem } from './score-repository.js';
 export { PostgresDatasetRepository } from './dataset-repository.js';
 export type { IDatasetRepository, DatasetItem, DatasetDetail, DatasetRow } from './dataset-repository.js';
+export { PostgresPromptRepository } from './prompt-repository.js';
+export type { IPromptRepository, PromptListItem, PromptVersion, PromptDetail } from './prompt-repository.js';

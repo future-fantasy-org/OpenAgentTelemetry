@@ -53,6 +53,33 @@ export type DatasetListItem = {
   createdAt: string;
 };
 
+export type PromptListItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  latestVersion: number | null;
+  updatedAt: string;
+};
+
+export type PromptVersion = {
+  id: string;
+  version: number;
+  template: string;
+  config: unknown;
+  labels: string[] | null;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type PromptDetail = {
+  id: string;
+  projectId: string;
+  name: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 const API_BASE = typeof window === 'undefined'
   ? (process.env.SERVER_URL ?? 'http://localhost:3001')
   : '';
@@ -80,4 +107,13 @@ export async function listScores(traceId: string): Promise<ScoreItem[]> {
 export async function listDatasets(projectId: string): Promise<DatasetListItem[]> {
   const data = await get(`${API_BASE}/api/datasets?projectId=${projectId}`);
   return data.datasets;
+}
+
+export async function listPrompts(projectId: string): Promise<PromptListItem[]> {
+  const data = await get(`${API_BASE}/api/prompts?projectId=${projectId}`);
+  return data.prompts;
+}
+
+export async function getPromptDetail(id: string): Promise<{ prompt: PromptDetail; versions: PromptVersion[] }> {
+  return get(`${API_BASE}/api/prompts/${id}`);
 }

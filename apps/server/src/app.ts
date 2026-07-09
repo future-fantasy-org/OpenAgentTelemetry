@@ -6,10 +6,12 @@ import { buildTracesRoutes } from './routes/traces.js';
 import { buildTraceDetailRoutes } from './routes/trace-detail.js';
 import { buildScoreRoutes } from './routes/scores.js';
 import { buildDatasetRoutes } from './routes/datasets.js';
+import { buildPromptRoutes } from './routes/prompts.js';
 import type { ITraceRepository } from './repositories/trace-repository.js';
 import type { IProjectRepository } from './repositories/project-repository.js';
 import type { IScoreRepository } from './repositories/score-repository.js';
 import type { IDatasetRepository } from './repositories/dataset-repository.js';
+import type { IPromptRepository } from './repositories/prompt-repository.js';
 
 // app 工厂：把依赖作为参数传入，测试时可传 mock
 export interface AppDeps {
@@ -17,6 +19,7 @@ export interface AppDeps {
   projectRepo: IProjectRepository;
   scoreRepo: IScoreRepository;
   datasetRepo: IDatasetRepository;
+  promptRepo: IPromptRepository;
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
@@ -32,6 +35,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     return project?.id ?? null;
   }));
   await app.register(buildDatasetRoutes(deps.datasetRepo));
+  await app.register(buildPromptRoutes(deps.promptRepo));
 
   return app;
 }

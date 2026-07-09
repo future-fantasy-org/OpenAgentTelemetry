@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, jsonb, integer, numeric, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, jsonb, integer, numeric, pgEnum, uniqueIndex, boolean } from 'drizzle-orm/pg-core';
 
 // 枚举：观测点类型
 export const observationTypeEnum = pgEnum('observation_type', ['span', 'event', 'generation']);
@@ -81,3 +81,28 @@ export const datasetItems = pgTable('dataset_items', {
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+// prompts：逻辑提示词（一个 prompt 对应多个版本）
+export const prompts = pgTable('prompts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// prompt_versions：提示词的具体内容版本
+// 拆两张表：一个 prompt 多版本，运行时按 name + label 拉取当前生产版本，历史版本保留用于回滚/对比
+export const promptVersions = pgTable('prompt_versions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  promptId: uuid('prompt_id').notNull().references(() => prompts.id),
+  version: integer('version').notNull(),
+  template: text('template').notNull(),
+  config: jsonb('config'),
+  labels: text('labels').array(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  promptVersionIdx: uniqueIndex('prompt_versions_prompt_id_version_idx').on(t.promptId, t.version),
+}));

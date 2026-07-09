@@ -18,6 +18,7 @@ export default async function HomePage() {
         <h1 className="text-2xl font-bold">Traces</h1>
         <nav className="flex gap-4 text-sm">
           <Link href="/datasets" className="text-blue-600 hover:underline">数据集</Link>
+          <Link href="/prompts" className="text-blue-600 hover:underline">Prompt 管理</Link>
         </nav>
       </div>
       {error && <p className="text-red-600 mb-4">加载失败：{error}</p>}

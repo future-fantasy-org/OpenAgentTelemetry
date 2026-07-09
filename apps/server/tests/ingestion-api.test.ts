@@ -6,6 +6,7 @@ import type {
   IProjectRepository,
   IScoreRepository,
   IDatasetRepository,
+  IPromptRepository,
   TraceListItem,
   TraceDetail,
 } from '../src/repositories/index.js';
@@ -34,7 +35,15 @@ function makeMockRepos(listReturn: TraceListItem[] = []) {
     async addDatasetItem() { return 'item-1'; },
     async listDatasetItems() { return []; },
   };
-  return { traceRepo, projectRepo, scoreRepo, datasetRepo, stored };
+  const promptRepo: IPromptRepository = {
+    async createPrompt() { return { promptId: 'p-1', version: 1 }; },
+    async listPrompts() { return []; },
+    async getPrompt() { return null; },
+    async getPromptByName() { return null; },
+    async addVersion() { return 2; },
+    async listVersions() { return []; },
+  };
+  return { traceRepo, projectRepo, scoreRepo, datasetRepo, promptRepo, stored };
 }
 
 describe('Ingestion API', () => {
