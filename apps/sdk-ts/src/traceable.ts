@@ -28,6 +28,7 @@ export function traceable<TArgs extends unknown[], TResult>(
         const result = await fn(...args);
         const endTime = new Date();
         if (defaultClient) {
+          const meta = extractLlmMeta(result);
           defaultClient.enqueue({
             id,
             traceId: getOrInitTraceId(),
@@ -37,7 +38,11 @@ export function traceable<TArgs extends unknown[], TResult>(
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
             input: args,
-            output: result,
+            output: meta.rest,
+            ...(meta.model != null && { model: meta.model }),
+            ...(meta.promptTokens != null && { promptTokens: meta.promptTokens }),
+            ...(meta.completionTokens != null && { completionTokens: meta.completionTokens }),
+            ...(meta.totalCost != null && { totalCost: meta.totalCost }),
           });
         }
         return result;
@@ -70,4 +75,17 @@ function getOrInitTraceId(): string {
 
 export function resetTraceId(id?: string) {
   _traceId = id ?? randomUUID();
+}
+
+function extractLlmMeta(result: unknown) {
+  if (typeof result !== 'object' || result === null) return { rest: result };
+  const { model, promptTokens, completionTokens, totalCost, ...rest } =
+    result as Record<string, unknown>;
+  return {
+    model: typeof model === 'string' ? model : undefined,
+    promptTokens: typeof promptTokens === 'number' ? promptTokens : undefined,
+    completionTokens: typeof completionTokens === 'number' ? completionTokens : undefined,
+    totalCost: typeof totalCost === 'number' ? totalCost : undefined,
+    rest,
+  };
 }

@@ -55,6 +55,7 @@ export type NewTrace = {
   input?: unknown;
   output?: unknown;
   metadata?: Record<string, unknown>;
+  timestamp?: Date;
 };
 
 // Postgres 实现
@@ -125,6 +126,14 @@ export class PostgresTraceRepository implements ITraceRepository {
   async createTraceWithObservations(trace: NewTrace, observations: Observation[]): Promise<void> {
     // 用事务保证一致性：trace 和它的 observations 要么都成功要么都回滚
     await db.transaction(async (tx) => {
+      const traceTimestamp =
+        trace.timestamp ??
+        (observations.length > 0
+          ? observations
+              .map((o) => new Date(o.startTime))
+              .reduce((min, cur) => (cur < min ? cur : min))
+          : undefined);
+
       const [inserted] = await tx
         .insert(schema.traces)
         .values({
@@ -135,6 +144,7 @@ export class PostgresTraceRepository implements ITraceRepository {
           input: trace.input,
           output: trace.output,
           metadata: trace.metadata,
+          ...(traceTimestamp && { timestamp: traceTimestamp }),
         })
         .returning({ id: schema.traces.id });
 
