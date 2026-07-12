@@ -140,6 +140,22 @@ async function post(url: string, body: unknown) {
   return res.json();
 }
 
+async function put(url: string, body: unknown) {
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error(`请求失败: ${res.status}`);
+  return res.json();
+}
+
+async function del(url: string) {
+  const res = await fetch(url, { method: 'DELETE', credentials: 'include' });
+  if (!res.ok) throw new Error(`请求失败: ${res.status}`);
+}
+
 export async function listTraces(projectId: string): Promise<TraceListItem[]> {
   const data = await get(`${API_BASE}/api/traces?projectId=${projectId}`);
   return data.traces;
@@ -185,4 +201,66 @@ export async function logout(): Promise<{ ok: boolean }> {
 
 export async function getMe(): Promise<{ user: AuthUser }> {
   return get(`${API_BASE}/api/auth/me`);
+}
+
+// ---- Alerts ----
+export type AlertRule = {
+  id: string;
+  projectId: string;
+  name: string;
+  enabled: boolean;
+  metric: string;
+  operator: string;
+  threshold: string;
+  windowSeconds: number;
+  webhookUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AlertEvent = {
+  id: string;
+  ruleId: string;
+  projectId: string;
+  metricValue: string;
+  threshold: string;
+  triggeredAt: string;
+  resolvedAt: string | null;
+  notificationStatus: string;
+};
+
+export type NewAlertRule = {
+  projectId: string;
+  name: string;
+  metric: string;
+  operator?: string;
+  threshold: number;
+  windowSeconds?: number;
+  webhookUrl?: string | null;
+};
+
+export async function listAlertRules(projectId: string): Promise<AlertRule[]> {
+  const data = await get(`${API_BASE}/api/alerts/rules?projectId=${projectId}`);
+  return data.rules;
+}
+
+export async function listAlertEvents(projectId: string, limit = 50): Promise<AlertEvent[]> {
+  const data = await get(`${API_BASE}/api/alerts/events?projectId=${projectId}&limit=${limit}`);
+  return data.events;
+}
+
+export async function createAlertRule(rule: NewAlertRule): Promise<AlertRule> {
+  return post(`${API_BASE}/api/alerts/rules`, rule);
+}
+
+export async function updateAlertRule(id: string, patch: Partial<NewAlertRule> & { enabled?: boolean }): Promise<AlertRule> {
+  return put(`${API_BASE}/api/alerts/rules/${id}`, patch);
+}
+
+export async function deleteAlertRule(id: string): Promise<void> {
+  await del(`${API_BASE}/api/alerts/rules/${id}`);
+}
+
+export async function testAlertWebhook(id: string): Promise<{ ok: boolean }> {
+  return post(`${API_BASE}/api/alerts/rules/${id}/test`, {});
 }

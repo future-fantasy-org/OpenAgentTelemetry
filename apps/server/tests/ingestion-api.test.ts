@@ -9,9 +9,11 @@ import type {
   IPromptRepository,
   IStatsRepository,
   IUserRepository,
+  IAlertRepository,
   TraceListItem,
   TraceDetail,
 } from '../src/repositories/index.js';
+import type { AlertEvaluator } from '../src/modules/alert-evaluator.js';
 
 // 测试需要一个 JWT_SECRET 才能签发/校验 token（requireAuth preHandler 依赖它）
 process.env.JWT_SECRET = 'test-secret';
@@ -67,7 +69,17 @@ function makeMockRepos(listReturn: TraceListItem[] = []) {
       return { id: 'u-1', email, passwordHash, role: 'admin', createdAt: new Date(), updatedAt: new Date() };
     },
   };
-  return { traceRepo, projectRepo, scoreRepo, datasetRepo, promptRepo, statsRepo, userRepo, stored };
+  const alertRepo: IAlertRepository = {
+    async listRules() { return []; },
+    async getRule() { return null; },
+    async createRule() { throw new Error('not implemented'); },
+    async updateRule() { return null; },
+    async deleteRule() {},
+    async listEvents() { return []; },
+    async createEvent() {},
+  };
+  const alertEvaluator = { evaluate: async () => {}, testWebhook: async () => false } as unknown as AlertEvaluator;
+  return { traceRepo, projectRepo, scoreRepo, datasetRepo, promptRepo, statsRepo, userRepo, alertRepo, alertEvaluator, stored };
 }
 
 describe('Ingestion API', () => {

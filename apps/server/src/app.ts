@@ -10,6 +10,7 @@ import { buildDatasetRoutes } from './routes/datasets.js';
 import { buildPromptRoutes } from './routes/prompts.js';
 import { buildStatsRoutes } from './routes/stats.js';
 import { buildAuthRoutes } from './routes/auth.js';
+import { buildAlertRoutes } from './routes/alerts.js';
 import { registerAuthHook } from './auth/require-auth.js';
 import type { ITraceRepository } from './repositories/trace-repository.js';
 import type { IProjectRepository } from './repositories/project-repository.js';
@@ -18,6 +19,8 @@ import type { IDatasetRepository } from './repositories/dataset-repository.js';
 import type { IPromptRepository } from './repositories/prompt-repository.js';
 import type { IStatsRepository } from './repositories/stats-repository.js';
 import type { IUserRepository } from './repositories/user-repository.js';
+import type { IAlertRepository } from './repositories/alert-repository.js';
+import type { AlertEvaluator } from './modules/alert-evaluator.js';
 
 // module augmentation：让 FastifyRequest 类型带上可选 user 字段
 // preHandler 校验 JWT 后把 {userId,email,role} 挂上去，路由里可直接 req.user 读
@@ -36,6 +39,8 @@ export interface AppDeps {
   promptRepo: IPromptRepository;
   statsRepo: IStatsRepository;
   userRepo: IUserRepository;
+  alertRepo: IAlertRepository;
+  alertEvaluator: AlertEvaluator;
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
@@ -55,6 +60,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(buildPromptRoutes(deps.promptRepo));
   await app.register(buildStatsRoutes(deps.statsRepo));
   await app.register(buildAuthRoutes(deps.userRepo));
+  await app.register(buildAlertRoutes(deps));
 
   // 全局鉴权钩子：必须在所有路由注册之后、listen 之前加
   // 保护所有 /api/*（除放行名单），让 SDK 摄取 /api/public/* 和 /api/auth/login 不受影响

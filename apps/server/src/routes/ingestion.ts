@@ -4,13 +4,17 @@ import type { ITraceRepository } from '../repositories/trace-repository.js';
 import type { IProjectRepository } from '../repositories/project-repository.js';
 import { IngestionService } from '../modules/ingestion-service.js';
 
+// alertEvaluator 用结构化类型，避免 routes 层硬依赖 alert-evaluator 模块
+type AlertEvaluatorLike = { evaluate(projectId: string): Promise<void> };
+
 // 用闭包工厂模式：deps 通过闭包捕获，避免 Fastify 泛型插件的 options 类型陷阱
 export function buildIngestionRoutes(deps: {
   traceRepo: ITraceRepository;
   projectRepo: IProjectRepository;
+  alertEvaluator?: AlertEvaluatorLike;
 }): FastifyPluginAsync {
   return async (app) => {
-    const service = new IngestionService(deps.traceRepo);
+    const service = new IngestionService(deps.traceRepo, deps.alertEvaluator);
 
     app.post('/api/public/ingestion', async (req, reply) => {
       // 1. 用 API Key 鉴权

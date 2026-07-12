@@ -15,6 +15,7 @@
 [![Node.js](https://img.shields.io/badge/Node-%3E%3D20-green.svg)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-workspaces-orange.svg)](https://pnpm.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-%3E%3D15-blue.svg)](https://www.postgresql.org/)
+[![Python](https://img.shields.io/badge/Python-%3E%3D3.9-blue.svg)](https://www.python.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 Trace LLM Calls · Visualize Agent Execution Paths · Evaluate Experiments · Manage Prompt Versions
@@ -102,6 +103,25 @@ OpenAgentTelemetry (OAT) is a **self-hostable, open-source AI Agent observabilit
 - **Cookie + JWT** — httpOnly cookie stores JWT, 7-day expiry, stateless session
 - **Global Route Guard** — Fastify preHandler hook protects all `/api/*` (SDK ingestion and login endpoints exempted)
 - **Frontend Login Guard** — Next.js Edge Middleware checks cookie, redirects to `/login` if unauthenticated
+
+### Python SDK (M7)
+
+- **Dual-Language Support** — In addition to the TypeScript SDK, a native Python SDK for AI/ML ecosystems
+- **`@traceable` Decorator** — Wraps sync and async functions, automatically maintains parent-child relationships via `contextvars` (Python's AsyncLocalStorage equivalent)
+- **Batch Client** — Background thread flushes buffered observations on interval or batch-size threshold (thread-safe, non-blocking to host code)
+- **LLM Metadata Extraction** — Automatically extracts `model`, `promptTokens`, `completionTokens`, `totalCost` from function return values to observation top-level fields
+- **LangChain Integration** — `OATLangChainHandler` implements `BaseCallbackHandler`, mapping LangChain's `on_llm_start` / `on_llm_end` / `on_chain_start` / `on_chain_end` events to OAT observations with zero code changes to existing LangChain apps
+
+### Alerting (M8)
+
+- **Real-Time Evaluation** — Alert rules are evaluated immediately after each ingestion via non-blocking `setImmediate` trigger (no polling delay)
+- **4 Metric Types** — `error_rate` (% of error-level observations), `p99_latency` (ms), `cost_rate` ($/min), `trace_rate` (traces/min)
+- **Sliding Window SQL** — PostgreSQL time-windowed aggregation with configurable window size (60s ~ 86400s)
+- **Threshold Comparison** — Supports `>`, `>=`, `<`, `<=` operators
+- **60s Debounce** — In-memory cooldown prevents alert storms (same rule won't re-fire within the cooldown window)
+- **Webhook Notification** — Optional webhook URL per rule, POSTs a JSON payload on trigger; manual test button in UI
+- **Event Timeline** — All triggered events are persisted with `metricValue`, `threshold`, and `notificationStatus` (`sent` / `failed` / `skipped`)
+- **Frontend Alert Page** — `/alerts` page for rule CRUD, enable/disable toggle, webhook test, and event timeline display
 
 ---
 
@@ -217,6 +237,44 @@ const outer = traceable(async () => {
 const inner = traceable(async () => {
   console.log(getCurrentParentId()); // 'outer-uuid'
 });
+```
+
+### Python SDK
+
+```bash
+pip install oat-python
+# with LangChain support:
+pip install "oat-python[langchain]"
+```
+
+```python
+from oat import OATClient, traceable, set_default_client, reset_trace_id
+
+client = OATClient(
+    base_url="http://localhost:3001",
+    api_key="your-api-key",
+    flush_at=50,
+    flush_interval=1.0,
+)
+set_default_client(client)
+
+@traceable(name="greet")
+def greet(name: str) -> str:
+    return f"Hello, {name}!"
+
+reset_trace_id()
+greet("World")  # → trace automatically reported
+```
+
+### LangChain Integration (Python)
+
+```python
+from oat.integrations.langchain import OATLangChainHandler
+from langchain_openai import ChatOpenAI
+
+handler = OATLangChainHandler(project="my-app")
+llm = ChatOpenAI(callbacks=[handler])
+llm.invoke("Hello!")  # → auto-traced as an OAT observation
 ```
 
 ---
@@ -359,6 +417,32 @@ GET /api/stats/overview?projectId=<uuid>&range=24h
   }
 ```
 
+### Alerting
+
+```
+GET /api/alerts/rules?projectId=<uuid>
+ { "rules": [{ "id", "name", "enabled", "metric", "operator", "threshold", "windowSeconds", "webhookUrl", ... }] }
+
+POST /api/alerts/rules
+{ "projectId": "...", "name": "High Error Rate", "metric": "error_rate", "operator": "gt", "threshold": 10, "windowSeconds": 300, "webhookUrl": "https://..." }
+ { "id": "...", "enabled": true, ... }
+
+PUT /api/alerts/rules/:id
+{ "enabled": false }  // toggle, or update any field
+ { "id": "...", "enabled": false, ... }
+
+DELETE /api/alerts/rules/:id
+ (204 No Content)
+
+POST /api/alerts/rules/:id/test
+ { "ok": true }  // manually test webhook delivery
+
+GET /api/alerts/events?projectId=<uuid>&limit=50
+ { "events": [{ "id", "ruleId", "metricValue", "threshold", "triggeredAt", "notificationStatus" }] }
+```
+
+**Supported metrics:** `error_rate` (%), `p99_latency` (ms), `cost_rate` ($/min), `trace_rate` (traces/min)
+
 ---
 
 ## Project Structure
@@ -376,15 +460,17 @@ OpenAgentTelemetry/
 │   │   │   │   ├── dataset-repository
 │   │   │   │   ├── prompt-repository
 │   │   │   │   ├── stats-repository    # Dashboard stats aggregation
+│   │   │   │   ├── alert-repository    # Alert rules + events CRUD
 │   │   │   │   └── user-repository     # User auth
 │   │   │   ├── routes/      # Fastify routes
 │   │   │   │   ├── health, ingestion, traces, trace-detail
 │   │   │   │   ├── scores, datasets, prompts
 │   │   │   │   ├── stats    # GET /api/stats/overview
+│   │   │   │   ├── alerts   # GET/POST/PUT/DELETE /api/alerts/*
 │   │   │   │   └── auth     # login / logout / me
-│   │   │   ├── modules/     # Business logic (IngestionService)
+│   │   │   ├── modules/     # Business logic (IngestionService, AlertEvaluator)
 │   │   │   └── app.ts       # Fastify app factory (closure factory pattern for DI)
-│   │   ├── drizzle/         # Database migration SQL (0000-0003)
+│   │   ├── drizzle/         # Database migration SQL (0000-0004)
 │   │   └── Dockerfile
 │   ├── web/                 # Next.js frontend
 │   │   ├── src/
@@ -393,15 +479,23 @@ OpenAgentTelemetry/
 │   │   │   │   ├── dashboard/  # Statistics charts (Recharts)
 │   │   │   │   ├── traces/  # List + [id] detail
 │   │   │   │   ├── datasets/
-│   │   │   │   └── prompts/
+│   │   │   │   ├── prompts/
+│   │   │   │   └── alerts/  # Alert rules + event timeline
 │   │   │   ├── lib/         # API client
 │   │   │   └── middleware.ts  # Edge login guard
 │   │   └── Dockerfile
-│   └── sdk-ts/              # TypeScript SDK
-│       └── src/
-│           ├── context.ts   # AsyncLocalStorage context management
-│           ├── client.ts    # Batch buffering HTTP client
-│           └── traceable.ts # Function decorator
+│   ├── sdk-ts/              # TypeScript SDK
+│   │   └── src/
+│   │       ├── context.ts   # AsyncLocalStorage context management
+│   │       ├── client.ts    # Batch buffering HTTP client
+│   │       └── traceable.ts # Function decorator
+│   └── sdk-python/          # Python SDK
+│       └── src/oat/
+│           ├── context.py       # contextvars context management
+│           ├── client.py        # Batch buffering HTTP client (threading)
+│           ├── traceable.py     # @traceable decorator (sync + async)
+│           └── integrations/
+│               └── langchain.py # LangChain BaseCallbackHandler
 ├── packages/
 │   └── shared/              # Shared Zod schema + type definitions
 ├── scripts/
@@ -470,7 +564,9 @@ pnpm dev:web
 - [x] **M4 — Prompt Management**: versioning, variable interpolation, label tagging, render preview
 - [x] **M5 — Dashboard Statistics**: time series aggregation, latency percentiles, tokens/cost, top models, score distribution
 - [x] **M6 — Authentication**: single admin login, Cookie+JWT, global route guard, frontend login guard
-- [ ] **Future**: Python SDK, OTLP compatibility, alerting system, multi-tenant organizations
+- [x] **M7 — Python SDK**: `@traceable` decorator, batch client, LLM metadata extraction, LangChain integration
+- [x] **M8 — Alerting**: real-time evaluation, 4 metric types, sliding window SQL, webhook notification, event timeline
+- [ ] **Future**: OTLP compatibility, multi-tenant organizations, evaluation jobs, ClickHouse migration
 
 ---
 

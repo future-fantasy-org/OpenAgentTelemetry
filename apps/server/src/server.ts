@@ -8,7 +8,9 @@ import {
   PostgresPromptRepository,
   PostgresStatsRepository,
   PostgresUserRepository,
+  PostgresAlertRepository,
 } from './repositories/index.js';
+import { AlertEvaluator } from './modules/alert-evaluator.js';
 
 // 引导管理员：启动时读 ADMIN_EMAIL/ADMIN_PASSWORD，若 users 表无该 email 则创建
 // 幂等：已存在则跳过（不覆盖密码，避免重启冲掉管理员手动改的密码）
@@ -36,6 +38,9 @@ async function main() {
   const userRepo = new PostgresUserRepository();
   await bootstrapAdmin(userRepo);
 
+  const alertRepo = new PostgresAlertRepository();
+  const alertEvaluator = new AlertEvaluator(alertRepo);
+
   const app = await buildApp({
     traceRepo: new PostgresTraceRepository(),
     projectRepo: new PostgresProjectRepository(),
@@ -44,6 +49,8 @@ async function main() {
     promptRepo: new PostgresPromptRepository(),
     statsRepo: new PostgresStatsRepository(),
     userRepo,
+    alertRepo,
+    alertEvaluator,
   });
 
   const port = Number(process.env.PORT ?? 3001);

@@ -19,6 +19,7 @@ export default async function PromptsPage() {
         <nav className="flex gap-4 text-sm">
           <Link href="/" className="text-blue-600 hover:underline">Traces</Link>
           <Link href="/datasets" className="text-blue-600 hover:underline">数据集</Link>
+          <Link href="/alerts" className="text-blue-600 hover:underline">告警</Link>
         </nav>
       </div>
       {error && <p className="text-red-600 mb-4">加载失败：{error}</p>}

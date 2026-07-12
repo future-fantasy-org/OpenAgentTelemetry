@@ -14,6 +14,59 @@
 
 ---
 
+### M8 — 告警系统 — 2026-07-12
+
+`adfeacd`（后端）· `565956c`（集成修复）
+
+#### Added
+- **数据库迁移** `0004_alert_tables.sql`：新增 `alert_rules` 表（规则定义）和 `alert_events` 表（触发事件），含项目维度索引
+- **告警规则 CRUD**：`GET/POST /api/alerts/rules`、`GET/PUT/DELETE /api/alerts/rules/:id`
+- **触发事件查询**：`GET /api/alerts/events?projectId=&limit=`
+- **Webhook 手动测试**：`POST /api/alerts/rules/:id/test`
+- **4 种指标类型**：`error_rate`（错误率 %）、`p99_latency`（P99 延迟 ms）、`cost_rate`（花费速率 $/min）、`trace_rate`（Trace 速率 次/min）
+- **滑动窗口 SQL 聚合**：PostgreSQL `INTERVAL` 时间窗口，窗口大小可配（60s ~ 86400s）
+- **阈值比较**：支持 `>` / `>=` / `<` / `<=` 四种运算符
+- **实时评估触发**：ingestion 完成后通过 `setImmediate` 非阻塞触发 `AlertEvaluator.evaluate()`
+- **60s 内存防抖**：同一规则在冷却期内不重复触发（`Map<ruleId, timestamp>`）
+- **Webhook 投递**：10s 超时，投递结果记入 `notification_status`（`sent` / `failed` / `skipped`）
+- **前端告警页面** `/alerts`：规则列表 + 创建表单 + 启用/停用切换 + Webhook 测试 + 事件时间线
+- **Repository 层**：`PostgresAlertRepository` 实现 `IAlertRepository` 接口
+- **AlertEvaluator 模块**：规则拉取 → 指标查询 → 阈值比较 → 防抖 → 发 webhook + 记事件
+
+#### Changed
+- `ingestion-service.ts`：构造函数新增可选 `alertEvaluator` 参数，`ingest()` 完成后 `setImmediate` 触发评估
+- `app.ts`：`AppDeps` 新增 `alertRepo` + `alertEvaluator`，注册 `buildAlertRoutes`
+- `server.ts`：实例化 `PostgresAlertRepository` + `AlertEvaluator` 并注入
+- `routes/ingestion.ts`：deps 新增可选 `alertEvaluator`，转发给 `IngestionService`
+- 前端所有页面导航栏新增「告警」链接
+- 前端 `api.ts`：新增 `put()` / `del()` helper + 告警相关 API 函数
+
+#### Verified
+- E2E 验证：创建规则 → 摄取数据 → 事件触发（metricValue=0.4 traces/min，notificationStatus=skipped）
+- CRUD 验证：PUT 启用/停用、DELETE 删除均通过
+- 类型检查 + lint 全通过，11 个测试全通过
+
+---
+
+### M7 — Python SDK — 2026-07-12
+
+`d8322fe`
+
+#### Added
+- **Python SDK 包** `apps/sdk-python`：独立 Python 包，支持 `pip install`
+- **`@traceable` 装饰器**：支持同步函数和 `async` 异步函数，自动维护父子关系
+- **`contextvars` 上下文管理**：Python 的 `AsyncLocalStorage` 等价物，实现自动 parentId 传递
+- **`OATClient` 批量客户端**：基于 `threading` 的后台 flush 线程，线程安全缓冲，按数量或时间触发
+- **LLM 元数据提取**：自动从函数返回值中提取 `model`、`promptTokens`、`completionTokens`、`totalCost` 到 observation 顶层字段
+- **LangChain 集成**：`OATLangChainHandler` 实现 `BaseCallbackHandler`，映射 `on_llm_start/end`、`on_chain_start/end` 等事件
+- **E2E 验证脚本** `scripts/verify-python-sdk.py`
+
+#### Dependencies
+- Python ≥ 3.9
+- 可选依赖：`langchain-core`（LangChain 集成）、`pytest`（开发）
+
+---
+
 ### M6 — 用户认证 — 2026-07-09
 
 `0135f11` · `bf8f873`（设计）· `5fc6940`（计划）

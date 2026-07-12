@@ -47,6 +47,7 @@ export default function DashboardClient({ projectId, initialRange }: { projectId
           <Link href="/" className="text-blue-600 hover:underline">Traces</Link>
           <Link href="/datasets" className="text-blue-600 hover:underline">数据集</Link>
           <Link href="/prompts" className="text-blue-600 hover:underline">Prompt</Link>
+          <Link href="/alerts" className="text-blue-600 hover:underline">告警</Link>
         </nav>
       </div>
 
