@@ -12,3 +12,11 @@ export { PostgresStatsRepository } from './stats-repository.js';
 export type { IStatsRepository, StatsOverview, StatsPoint, StatsSummary, TopModel, ScoreDistributionItem } from './stats-repository.js';
 export { PostgresUserRepository } from './user-repository.js';
 export type { IUserRepository, User } from './user-repository.js';
+export { PostgresAlertRepository } from './alert-repository.js';
+export type {
+  IAlertRepository,
+  AlertRule,
+  NewAlertRule,
+  AlertEvent,
+  NewAlertEvent,
+} from './alert-repository.js';

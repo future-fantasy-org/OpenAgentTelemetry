@@ -1,8 +1,15 @@
 import type { ITraceRepository } from '../repositories/trace-repository.js';
 import type { Observation } from '@oat/shared';
 
+// alertEvaluator 用结构化类型而非直接引 AlertEvaluator 类：
+// 避免 ingestion-service 反过来依赖 alert-evaluator（防循环依赖），且便于测试 mock
+type AlertEvaluatorLike = { evaluate(projectId: string): Promise<void> };
+
 export class IngestionService {
-  constructor(private traceRepo: ITraceRepository) {}
+  constructor(
+    private traceRepo: ITraceRepository,
+    private alertEvaluator?: AlertEvaluatorLike,
+  ) {}
 
   // 把一批 observations 按 traceId 分组，每组建一个 trace
   async ingest(projectId: string, observations: Observation[]) {
@@ -28,6 +35,15 @@ export class IngestionService {
         },
         obs,
       );
+    }
+
+    // 写入完成后非阻塞触发告警评估：
+    // setImmediate 把 evaluate 丢到下个事件循环，不阻塞 ingestion 的 202 响应；
+    // evaluate 内部已 try/catch，这里再加 .catch() 兜底未捕获的 rejection
+    if (this.alertEvaluator) {
+      setImmediate(() => {
+        this.alertEvaluator!.evaluate(projectId).catch(() => {});
+      });
     }
   }
 }

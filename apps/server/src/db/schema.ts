@@ -117,3 +117,31 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+// alert_rules：告警规则定义。metric 决定怎么算，operator+threshold 决定何时触发
+// window_seconds 是滑动窗口长度；webhook_url 为空时只记录事件不发通知
+export const alertRules = pgTable('alert_rules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  name: text('name').notNull(),
+  enabled: boolean('enabled').notNull().default(true),
+  metric: text('metric').notNull(),
+  operator: text('operator').notNull().default('gt'),
+  threshold: numeric('threshold').notNull(),
+  windowSeconds: integer('window_seconds').notNull().default(300),
+  webhookUrl: text('webhook_url'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// alert_events：每次规则触发的记录。notification_status 跟踪 webhook 投递结果
+export const alertEvents = pgTable('alert_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ruleId: uuid('rule_id').notNull().references(() => alertRules.id),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  metricValue: numeric('metric_value').notNull(),
+  threshold: numeric('threshold').notNull(),
+  triggeredAt: timestamp('triggered_at', { withTimezone: true }).notNull().defaultNow(),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  notificationStatus: text('notification_status').notNull().default('pending'),
+});
