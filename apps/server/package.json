@@ -15,6 +15,7 @@
   "dependencies": {
     "@fastify/cookie": "^9.4.0",
     "@fastify/cors": "^9.0.0",
+    "@fastify/rate-limit": "^9.1.0",
     "@node-rs/argon2": "^2.0.2",
     "@oat/shared": "workspace:*",
     "drizzle-orm": "^0.31.0",

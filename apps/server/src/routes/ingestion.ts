@@ -16,7 +16,9 @@ export function buildIngestionRoutes(deps: {
   return async (app) => {
     const service = new IngestionService(deps.traceRepo, deps.alertEvaluator);
 
-    app.post('/api/public/ingestion', async (req, reply) => {
+    app.post('/api/public/ingestion', {
+      config: { rateLimit: { max: 600, timeWindow: '1 minute' } },
+    }, async (req, reply) => {
       // 1. 用 API Key 鉴权
       const authHeader = req.headers.authorization;
       const apiKey = authHeader?.replace('Bearer ', '');

@@ -6,7 +6,9 @@ import { signToken, COOKIE_NAME, MAX_AGE } from '../auth/jwt.js';
 export function buildAuthRoutes(userRepo: IUserRepository): FastifyPluginAsync {
   return async (app) => {
     // POST /api/auth/login — 邮箱+密码登录，成功签 JWT 写 cookie
-    app.post('/api/auth/login', async (req, reply) => {
+    app.post('/api/auth/login', {
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    }, async (req, reply) => {
       const { email, password } = req.body as { email?: string; password?: string };
       if (!email || !password) {
         return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: '缺少邮箱或密码' } });

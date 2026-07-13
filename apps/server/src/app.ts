@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
 import { healthRoutes } from './routes/health.js';
 import { buildIngestionRoutes } from './routes/ingestion.js';
 import { buildTracesRoutes } from './routes/traces.js';
@@ -49,6 +50,11 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: true });
   await app.register(cors, { origin: true, credentials: true }); // credentials:true 让前端 fetch 能带 cookie
   await app.register(cookie); // 解析 cookie，preHandler 和 logout 依赖它
+  await app.register(rateLimit, {
+    global: true,
+    max: 100,
+    timeWindow: '1 minute',
+  });
 
   await app.register(healthRoutes);
   await app.register(buildIngestionRoutes(deps));
