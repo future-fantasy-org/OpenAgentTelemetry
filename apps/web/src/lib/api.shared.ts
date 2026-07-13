@@ -178,6 +178,114 @@ export type AuditLog = {
   metadata: Record<string, unknown>;
 };
 
+// M13: Eval 相关类型
+export type LlmProvider = {
+  id: string;
+  name: string;
+  provider: 'openai' | 'custom' | 'ollama';
+  baseURL: string;
+  apiKeyPreview: string;
+  defaultModel: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NewLlmProvider = {
+  name: string;
+  provider: 'openai' | 'custom' | 'ollama';
+  baseURL: string;
+  apiKey: string;
+  defaultModel?: string;
+};
+
+export type EvaluatorType = 'llm_judge' | 'numeric_threshold';
+
+export type LlmJudgeConfig = {
+  providerId: string;
+  model: string;
+  judgePrompt: string;
+  min: number;
+  max: number;
+};
+
+export type NumericThresholdConfig = {
+  metric: 'latency_ms' | 'prompt_tokens' | 'completion_tokens' | 'total_cost';
+  operator: 'lt' | 'lte' | 'gt' | 'gte';
+  threshold: number;
+  passScore: number;
+  failScore: number;
+};
+
+export type Evaluator = {
+  id: string;
+  projectId: string;
+  name: string;
+  type: EvaluatorType;
+  config: LlmJudgeConfig | NumericThresholdConfig;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NewEvaluator = {
+  projectId: string;
+  name: string;
+  type: EvaluatorType;
+  config: LlmJudgeConfig | NumericThresholdConfig;
+};
+
+export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
+
+export type JobSummary = Record<string, { avg: number; passRate: number; count: number }>;
+
+export type EvalJob = {
+  id: string;
+  projectId: string;
+  name: string;
+  datasetId: string;
+  promptId: string;
+  promptVersion: number;
+  providerId: string;
+  model: string;
+  evaluatorIds: string[];
+  status: JobStatus;
+  concurrency: number;
+  totalItems: number;
+  completedItems: number;
+  failedItems: number;
+  summary: JobSummary | null;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+};
+
+export type JobItemStatus = 'pending' | 'running' | 'success' | 'failed';
+
+export type EvalJobItem = {
+  id: string;
+  jobId: string;
+  datasetItemId: string;
+  status: JobItemStatus;
+  output: unknown;
+  traceId: string | null;
+  latencyMs: number | null;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+};
+
+export type NewEvalJob = {
+  projectId: string;
+  name: string;
+  datasetId: string;
+  promptId: string;
+  promptVersion: number;
+  providerId: string;
+  model: string;
+  evaluatorIds: string[];
+  concurrency?: number;
+};
+
 export const isServer = typeof window === 'undefined';
 
 export const API_BASE = isServer

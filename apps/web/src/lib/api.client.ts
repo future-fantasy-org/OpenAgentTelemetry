@@ -7,9 +7,19 @@ import type {
   AuthUser,
   AuditLog,
   TraceListItem,
+  LlmProvider,
+  NewLlmProvider,
+  Evaluator,
+  NewEvaluator,
+  EvalJob,
+  EvalJobItem,
+  NewEvalJob,
 } from './api.shared';
 
-export type { StatsOverview, AlertRule, AlertEvent, NewAlertRule, AuthUser, AuditLog, TraceListItem } from './api.shared';
+export type {
+  StatsOverview, AlertRule, AlertEvent, NewAlertRule, AuthUser, AuditLog, TraceListItem,
+  LlmProvider, NewLlmProvider, Evaluator, NewEvaluator, EvalJob, EvalJobItem, NewEvalJob,
+} from './api.shared';
 
 async function get<T>(url: string): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, {
@@ -128,4 +138,55 @@ export async function listTracesClient(params: {
   if (params.cursor) qs.set('cursor', params.cursor);
   if (params.limit) qs.set('limit', String(params.limit));
   return get(`/api/traces?${qs.toString()}`);
+}
+
+// ===== M13: Eval Provider =====
+export async function listProviders(): Promise<LlmProvider[]> {
+  const data = await get<{ providers: LlmProvider[] }>(`/api/eval/providers`);
+  return data.providers;
+}
+export async function createProvider(input: NewLlmProvider): Promise<LlmProvider> {
+  return post(`/api/eval/providers`, input);
+}
+export async function updateProvider(id: string, patch: Partial<NewLlmProvider>): Promise<LlmProvider> {
+  return put(`/api/eval/providers/${id}`, patch);
+}
+export async function deleteProvider(id: string): Promise<void> {
+  await del(`/api/eval/providers/${id}`);
+}
+export async function testProvider(id: string): Promise<{ ok: boolean; message?: string }> {
+  return post(`/api/eval/providers/${id}/test`, {});
+}
+
+// ===== M13: Evaluator =====
+export async function listEvaluators(projectId: string): Promise<Evaluator[]> {
+  const data = await get<{ evaluators: Evaluator[] }>(`/api/eval/evaluators?projectId=${projectId}`);
+  return data.evaluators;
+}
+export async function createEvaluator(input: NewEvaluator): Promise<Evaluator> {
+  return post(`/api/eval/evaluators`, input);
+}
+export async function updateEvaluator(id: string, patch: Partial<NewEvaluator>): Promise<Evaluator> {
+  return put(`/api/eval/evaluators/${id}`, patch);
+}
+export async function deleteEvaluator(id: string): Promise<void> {
+  await del(`/api/eval/evaluators/${id}`);
+}
+
+// ===== M13: Eval Job =====
+export async function listEvalJobs(projectId: string): Promise<{ jobs: EvalJob[]; nextCursor: string | null }> {
+  return get(`/api/eval/jobs?projectId=${projectId}`);
+}
+export async function getEvalJob(id: string): Promise<EvalJob> {
+  return get(`/api/eval/jobs/${id}`);
+}
+export async function createEvalJob(input: NewEvalJob): Promise<EvalJob> {
+  return post(`/api/eval/jobs`, input);
+}
+export async function listJobItems(jobId: string, status?: string): Promise<{ items: EvalJobItem[]; nextCursor: string | null }> {
+  const qs = status ? `?status=${status}` : '';
+  return get(`/api/eval/jobs/${jobId}/items${qs}`);
+}
+export async function cancelEvalJob(id: string): Promise<{ ok: boolean }> {
+  return post(`/api/eval/jobs/${id}/cancel`, {});
 }

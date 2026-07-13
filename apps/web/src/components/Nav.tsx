@@ -37,6 +37,8 @@ export function Nav({
     { href: '/prompts', label: 'Prompts' },
     { href: '/alerts', label: '告警' },
     { href: '/audit', label: '审计' },
+    { href: '/eval/providers', label: 'Provider' },
+    { href: '/eval/evaluators', label: '评估器' },
   ];
 
   return (
