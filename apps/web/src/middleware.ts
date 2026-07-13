@@ -1,22 +1,31 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
-// Edge 登录守卫：检查 cookie 存在性（Edge 不好验签，真校验在 API 层）
-// 没有 oat_session cookie 就跳 /login
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  // 登录页本身、静态资源放行
-  if (pathname === '/login' || pathname.startsWith('/_next') || pathname.startsWith('/favicon')) {
-    return NextResponse.next();
+const PUBLIC_PREFIXES = ['/login'];
+
+export async function middleware(req: NextRequest) {
+  const { pathname, search } = req.nextUrl;
+  const session = req.cookies.get('oat_session')?.value;
+  const isPublic = PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));
+
+  if (session && isPublic) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/';
+    url.search = '';
+    return NextResponse.redirect(url);
   }
-  const session = req.cookies.get('oat_session');
-  if (!session) {
-    return NextResponse.redirect(new URL('/login', req.url));
+
+  if (!session && !isPublic) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    url.search = `?next=${encodeURIComponent(pathname + search)}`;
+    return NextResponse.redirect(url);
   }
-  return NextResponse.next();
+
+  const res = NextResponse.next();
+  res.headers.set('x-search', search);
+  return res;
 }
 
-// matcher：排除 /login 和静态资源，其余路径都过 middleware
 export const config = {
-  matcher: ['/((?!login|_next|favicon).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 };
