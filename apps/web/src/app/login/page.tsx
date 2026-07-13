@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { login } from '@/lib/api';
+import { login } from '@/lib/api.client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,7 +17,9 @@ export default function LoginPage() {
     setError(null);
     try {
       await login(email, password);
-      router.push('/');
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get('next') || '/';
+      router.push(next);
       router.refresh();
     } catch {
       setError('邮箱或密码错误');

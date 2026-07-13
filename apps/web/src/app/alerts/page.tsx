@@ -1,7 +1,13 @@
+import { getCurrentProjectId } from '@/lib/project-context';
 import AlertClient from './AlertClient';
 
-const SEED_PROJECT_ID = process.env.SEED_PROJECT_ID ?? '';
-
-export default function AlertsPage() {
-  return <AlertClient projectId={SEED_PROJECT_ID} />;
+export default async function AlertsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ projectId?: string }>;
+}) {
+  const resolved = await searchParams;
+  const sp = new URLSearchParams(resolved as Record<string, string>);
+  const { projectId } = await getCurrentProjectId(sp);
+  return <AlertClient projectId={projectId} />;
 }

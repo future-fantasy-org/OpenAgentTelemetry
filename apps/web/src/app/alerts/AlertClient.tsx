@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import {
   listAlertRules,
   listAlertEvents,
@@ -11,7 +10,7 @@ import {
   testAlertWebhook,
   type AlertRule,
   type AlertEvent,
-} from '@/lib/api';
+} from '@/lib/api.client';
 
 const METRICS = [
   { key: 'error_rate', label: '错误率 (%)' },
@@ -94,11 +93,6 @@ export default function AlertClient({ projectId }: { projectId: string }) {
     <main className="mx-auto max-w-5xl p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">告警</h1>
-        <nav className="flex gap-4 text-sm">
-          <Link href="/" className="text-blue-600 hover:underline">Traces</Link>
-          <Link href="/dashboard" className="text-blue-600 hover:underline">Dashboard</Link>
-          <Link href="/prompts" className="text-blue-600 hover:underline">Prompt</Link>
-        </nav>
       </div>
 
       {error && <p className="text-red-600 mb-4">操作失败：{error}</p>}

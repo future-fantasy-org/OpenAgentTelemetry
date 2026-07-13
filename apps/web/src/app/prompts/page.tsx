@@ -1,28 +1,20 @@
 import Link from 'next/link';
-import { listPrompts } from '@/lib/api';
+import { getCurrentProjectId } from '@/lib/project-context';
+import { listPrompts } from '@/lib/api.server';
 
-const SEED_PROJECT_ID = process.env.SEED_PROJECT_ID ?? '';
-
-export default async function PromptsPage() {
-  let prompts: Awaited<ReturnType<typeof listPrompts>> = [];
-  let error: string | null = null;
-  try {
-    if (SEED_PROJECT_ID) prompts = await listPrompts(SEED_PROJECT_ID);
-  } catch (e) {
-    error = (e as Error).message;
-  }
+export default async function PromptsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ projectId?: string }>;
+}) {
+  const resolved = await searchParams;
+  const sp = new URLSearchParams(resolved as Record<string, string>);
+  const { projectId } = await getCurrentProjectId(sp);
+  const prompts = await listPrompts(projectId);
 
   return (
     <main className="mx-auto max-w-5xl p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Prompt 管理</h1>
-        <nav className="flex gap-4 text-sm">
-          <Link href="/" className="text-blue-600 hover:underline">Traces</Link>
-          <Link href="/datasets" className="text-blue-600 hover:underline">数据集</Link>
-          <Link href="/alerts" className="text-blue-600 hover:underline">告警</Link>
-        </nav>
-      </div>
-      {error && <p className="text-red-600 mb-4">加载失败：{error}</p>}
+      <h1 className="text-2xl font-bold mb-6">Prompt 管理</h1>
       <div className="rounded-lg border bg-white overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-gray-600">
@@ -34,7 +26,7 @@ export default async function PromptsPage() {
             </tr>
           </thead>
           <tbody>
-            {prompts.length === 0 && !error && (
+            {prompts.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
                   暂无 Prompt，通过 API 创建一个试试
@@ -44,7 +36,10 @@ export default async function PromptsPage() {
             {prompts.map((p) => (
               <tr key={p.id} className="border-t hover:bg-gray-50">
                 <td className="px-4 py-2">
-                  <Link href={`/prompts/${p.id}`} className="font-medium text-blue-600 hover:underline">
+                  <Link
+                    href={`/prompts/${p.id}?projectId=${projectId}`}
+                    className="font-medium text-blue-600 hover:underline"
+                  >
                     {p.name}
                   </Link>
                 </td>
@@ -54,7 +49,9 @@ export default async function PromptsPage() {
                     <span className="text-xs font-mono px-2 py-0.5 rounded bg-green-100 text-green-700">
                       v{p.latestVersion}
                     </span>
-                  ) : '-'}
+                  ) : (
+                    '-'
+                  )}
                 </td>
                 <td className="px-4 py-2 text-gray-500">
                   {new Date(p.updatedAt).toLocaleString()}

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getTraceDetail, listScores } from '@/lib/api';
+import { getTraceDetail, listScores } from '@/lib/api.server';
 import type { ObservationDetail } from '@/lib/api';
 
 // 把扁平的 observations 列表构建成树（用 parentId 找父亲）

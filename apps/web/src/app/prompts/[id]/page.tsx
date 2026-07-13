@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getPromptDetail } from '@/lib/api';
+import { getPromptDetail } from '@/lib/api.server';
 
 export default async function PromptDetailPage({ params }: { params: { id: string } }) {
   let data;

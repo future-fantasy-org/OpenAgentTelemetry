@@ -1,29 +1,20 @@
 import Link from 'next/link';
-import { listTraces } from '@/lib/api';
+import { getCurrentProjectId } from '@/lib/project-context';
+import { listTraces } from '@/lib/api.server';
 
-const SEED_PROJECT_ID = process.env.SEED_PROJECT_ID ?? '';
-
-export default async function HomePage() {
-  let traces: Awaited<ReturnType<typeof listTraces>> = [];
-  let error: string | null = null;
-  try {
-    if (SEED_PROJECT_ID) traces = await listTraces(SEED_PROJECT_ID);
-  } catch (e) {
-    error = (e as Error).message;
-  }
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ projectId?: string }>;
+}) {
+  const resolved = await searchParams;
+  const sp = new URLSearchParams(resolved as Record<string, string>);
+  const { projectId } = await getCurrentProjectId(sp);
+  const traces = await listTraces(projectId);
 
   return (
     <main className="mx-auto max-w-5xl p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Traces</h1>
-        <nav className="flex gap-4 text-sm">
-          <Link href="/dashboard" className="text-blue-600 hover:underline">Dashboard</Link>
-          <Link href="/datasets" className="text-blue-600 hover:underline">数据集</Link>
-          <Link href="/prompts" className="text-blue-600 hover:underline">Prompt 管理</Link>
-          <Link href="/alerts" className="text-blue-600 hover:underline">告警</Link>
-        </nav>
-      </div>
-      {error && <p className="text-red-600 mb-4">加载失败：{error}</p>}
+      <h1 className="text-2xl font-bold mb-6">Traces</h1>
       <div className="rounded-lg border bg-white overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-gray-600">
@@ -35,7 +26,7 @@ export default async function HomePage() {
             </tr>
           </thead>
           <tbody>
-            {traces.length === 0 && !error && (
+            {traces.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
                   暂无 trace，用 SDK 上报一条试试
@@ -45,7 +36,10 @@ export default async function HomePage() {
             {traces.map((t) => (
               <tr key={t.id} className="border-t hover:bg-gray-50">
                 <td className="px-4 py-2">
-                  <Link href={`/traces/${t.id}`} className="font-medium text-blue-600 hover:underline">
+                  <Link
+                    href={`/traces/${t.id}?projectId=${projectId}`}
+                    className="font-medium text-blue-600 hover:underline"
+                  >
                     {t.name}
                   </Link>
                 </td>

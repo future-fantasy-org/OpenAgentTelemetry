@@ -1,28 +1,20 @@
 import Link from 'next/link';
-import { listDatasets } from '@/lib/api';
+import { getCurrentProjectId } from '@/lib/project-context';
+import { listDatasets } from '@/lib/api.server';
 
-const SEED_PROJECT_ID = process.env.SEED_PROJECT_ID ?? '';
-
-export default async function DatasetsPage() {
-  let datasets: Awaited<ReturnType<typeof listDatasets>> = [];
-  let error: string | null = null;
-  try {
-    if (SEED_PROJECT_ID) datasets = await listDatasets(SEED_PROJECT_ID);
-  } catch (e) {
-    error = (e as Error).message;
-  }
+export default async function DatasetsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ projectId?: string }>;
+}) {
+  const resolved = await searchParams;
+  const sp = new URLSearchParams(resolved as Record<string, string>);
+  const { projectId } = await getCurrentProjectId(sp);
+  const datasets = await listDatasets(projectId);
 
   return (
     <main className="mx-auto max-w-5xl p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">数据集</h1>
-        <nav className="flex gap-4 text-sm">
-          <Link href="/" className="text-blue-600 hover:underline">Traces</Link>
-          <Link href="/prompts" className="text-blue-600 hover:underline">Prompt 管理</Link>
-          <Link href="/alerts" className="text-blue-600 hover:underline">告警</Link>
-        </nav>
-      </div>
-      {error && <p className="text-red-600 mb-4">加载失败：{error}</p>}
+      <h1 className="text-2xl font-bold mb-6">数据集</h1>
       <div className="rounded-lg border bg-white overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-gray-600">
@@ -33,7 +25,7 @@ export default async function DatasetsPage() {
             </tr>
           </thead>
           <tbody>
-            {datasets.length === 0 && !error && (
+            {datasets.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-4 py-8 text-center text-gray-400">
                   暂无数据集，通过 API 创建一个试试
@@ -43,7 +35,10 @@ export default async function DatasetsPage() {
             {datasets.map((d) => (
               <tr key={d.id} className="border-t hover:bg-gray-50">
                 <td className="px-4 py-2">
-                  <Link href={`/datasets/${d.id}`} className="font-medium text-blue-600 hover:underline">
+                  <Link
+                    href={`/datasets/${d.id}?projectId=${projectId}`}
+                    className="font-medium text-blue-600 hover:underline"
+                  >
                     {d.name}
                   </Link>
                 </td>

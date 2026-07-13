@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import {
   AreaChart, Area, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { getStatsOverview, type StatsOverview } from '@/lib/api';
+import { getStatsOverview, type StatsOverview } from '@/lib/api.client';
 
 const RANGES = [
   { key: '1h', label: '1 小时' },
@@ -43,12 +42,6 @@ export default function DashboardClient({ projectId, initialRange }: { projectId
     <main className="mx-auto max-w-6xl p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <nav className="flex gap-4 text-sm">
-          <Link href="/" className="text-blue-600 hover:underline">Traces</Link>
-          <Link href="/datasets" className="text-blue-600 hover:underline">数据集</Link>
-          <Link href="/prompts" className="text-blue-600 hover:underline">Prompt</Link>
-          <Link href="/alerts" className="text-blue-600 hover:underline">告警</Link>
-        </nav>
       </div>
 
       <div className="flex gap-2 mb-6">
