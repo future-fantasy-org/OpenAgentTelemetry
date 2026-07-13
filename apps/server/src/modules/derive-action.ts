@@ -14,6 +14,10 @@ export function deriveAction(method: string, path: string, statusCode: number): 
     return 'idor.blocked';
   }
 
+  if (path.endsWith('/cancel') && path.startsWith('/api/eval/jobs/')) {
+    return 'eval_job.cancel';
+  }
+
   const resource = deriveResourceType(path);
   if (resource) {
     const hasId = extractResourceId(path) !== null;
@@ -29,6 +33,9 @@ export function deriveAction(method: string, path: string, statusCode: number): 
 }
 
 export function deriveResourceType(path: string): string | null {
+  if (path.startsWith('/api/eval/providers')) return 'eval_provider';
+  if (path.startsWith('/api/eval/evaluators')) return 'evaluator';
+  if (path.startsWith('/api/eval/jobs')) return 'eval_job';
   if (path.startsWith('/api/datasets')) return 'dataset';
   if (path.startsWith('/api/prompts')) return 'prompt';
   if (path.startsWith('/api/alerts/rules')) return 'alert_rule';
@@ -39,7 +46,7 @@ export function deriveResourceType(path: string): string | null {
 }
 
 export function extractResourceId(path: string): string | null {
-  const resourceTypes = ['datasets', 'prompts', 'rules', 'traces', 'projects'];
+  const resourceTypes = ['providers', 'evaluators', 'jobs', 'datasets', 'prompts', 'rules', 'traces', 'projects'];
   for (const rt of resourceTypes) {
     const regex = new RegExp(`/${rt}/([^/]+)`);
     const match = path.match(regex);

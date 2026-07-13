@@ -47,6 +47,22 @@ describe('deriveAction', () => {
   it('未知路由 fallback', () => {
     expect(deriveAction('POST', '/api/unknown', 200)).toBe('api.unknown');
   });
+
+  it('POST /api/eval/providers 201 → eval_provider.create', () => {
+    expect(deriveAction('POST', '/api/eval/providers', 201)).toBe('eval_provider.create');
+  });
+  it('DELETE /api/eval/providers/abc 204 → eval_provider.delete', () => {
+    expect(deriveAction('DELETE', '/api/eval/providers/abc', 204)).toBe('eval_provider.delete');
+  });
+  it('POST /api/eval/evaluators 201 → evaluator.create', () => {
+    expect(deriveAction('POST', '/api/eval/evaluators', 201)).toBe('evaluator.create');
+  });
+  it('POST /api/eval/jobs 201 → eval_job.create', () => {
+    expect(deriveAction('POST', '/api/eval/jobs', 201)).toBe('eval_job.create');
+  });
+  it('POST /api/eval/jobs/abc/cancel 200 → eval_job.cancel', () => {
+    expect(deriveAction('POST', '/api/eval/jobs/abc/cancel', 200)).toBe('eval_job.cancel');
+  });
 });
 
 describe('deriveResourceType', () => {
