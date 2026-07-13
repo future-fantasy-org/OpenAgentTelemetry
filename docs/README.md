@@ -49,6 +49,7 @@ docs/
 | [M7：Python SDK](./plans/2026-07-12-m7-python-sdk.md) | Python SDK 包脚手架、contextvars 上下文管理、批量客户端（threading）、@traceable 装饰器（同步+异步）、LangChain BaseCallbackHandler 集成 |
 | [M8：告警系统](./plans/2026-07-12-m8-alerting.md) | alert_rules/alert_events 表迁移、Alert Repository、AlertEvaluator（4 指标滑动窗口 SQL + 60s 防抖 + Webhook）、REST API、前端告警页面 |
 | [M9：鉴权修复 + 前端骨架](./plans/2026-07-12-m9-auth-frontend-skeleton.md) | 后端 GET /api/projects、API 客户端三文件拆分（server-only 边界）、cookie 转发、ProjectSwitcher + 共享 Nav、layout headers() 读 URL、middleware next 参数、error/loading/not-found 边界 |
+| [M10：安全加固](./plans/2026-07-13-m10-security-hardening.md) | API Key SHA-256 哈希化（破坏性迁移）、IDOR projectId 存在性 preHandler 校验、@fastify/rate-limit 分层限流（全局 100/min + login 10/min + ingestion 600/min） |
 
 ## 里程碑总览
 
