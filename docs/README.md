@@ -12,14 +12,18 @@ docs/
 ├── specs/                       # 设计规格文档
 │   ├── 2026-07-09-openagenttelemetry-platform-design.md
 │   ├── 2026-07-09-auth-dashboard-design.md
-│   └── 2026-07-12-python-sdk-alerting-design.md
+│   ├── 2026-07-12-python-sdk-alerting-design.md
+│   ├── 2026-07-12-m9-auth-frontend-skeleton-design.md
+│   └── 2026-07-13-m10-security-hardening-design.md
 └── plans/                       # 实现计划文档
     ├── 2026-07-09-m1-skeleton.md
     ├── 2026-07-09-m2-m3-tracing-eval.md
     ├── 2026-07-09-m5-dashboard-stats.md
     ├── 2026-07-09-m6-admin-auth.md
     ├── 2026-07-12-m7-python-sdk.md
-    └── 2026-07-12-m8-alerting.md
+    ├── 2026-07-12-m8-alerting.md
+    ├── 2026-07-12-m9-auth-frontend-skeleton.md
+    └── 2026-07-13-m10-security-hardening.md
 ```
 
 ## 文档列表
@@ -37,6 +41,8 @@ docs/
 | [OpenAgentTelemetry 平台设计规格](./specs/2026-07-09-openagenttelemetry-platform-design.md) | 平台整体设计：技术栈、架构、数据模型、数据流、SDK 设计、仓库结构、MVP 分期、错误处理与测试策略 |
 | [认证 + Dashboard 设计规格](./specs/2026-07-09-auth-dashboard-design.md) | M5 Dashboard 统计图表 + M6 单管理员认证的设计：Cookie+JWT 会话、argon2 密码哈希、全局路由守卫、统计聚合 SQL、Recharts 图表方案 |
 | [Python SDK + 告警系统设计规格](./specs/2026-07-12-python-sdk-alerting-design.md) | M7 Python SDK（contextvars + @traceable + LangChain）+ M8 告警系统（实时评估引擎 + 滑动窗口 SQL + Webhook）的设计 |
+| [M9 鉴权修复 + 前端骨架设计规格](./specs/2026-07-12-m9-auth-frontend-skeleton-design.md) | GET /api/projects 端点、API 客户端三文件拆分（server-only 边界）、SSR cookie 转发、ProjectSwitcher + 共享 Nav、layout headers() 读 URL |
+| [M10 安全加固设计规格](./specs/2026-07-13-m10-security-hardening-design.md) | API Key SHA-256 哈希化（破坏性迁移）、IDOR projectId 存在性 preHandler 校验、@fastify/rate-limit 分层限流设计 |
 
 ### 实现计划（plans/）
 
@@ -64,5 +70,5 @@ docs/
 | M7 — Python SDK | ✅ 完成 | @traceable 装饰器、批量客户端、LLM 元数据提取、LangChain 集成 |
 | M8 — 告警系统 | ✅ 完成 | 实时评估触发、4 指标滑动窗口、Webhook、事件时间线 |
 | M9 — 鉴权修复 + 前端骨架 | ✅ 完成 | SSR cookie 转发、API 三文件拆分、项目选择器、共享 Nav、error/loading 边界 |
-| M10 — 安全加固 | 📋 规划中 | API Key 哈希化、全局限流、IDOR projectId 归属校验 |
+| M10 — 安全加固 | ✅ 完成 | API Key SHA-256 哈希化、IDOR projectId 存在性校验、分层限流 |
 | 未来 | 规划中 | OTLP 兼容、多租户组织、评估任务、ClickHouse 迁移 |

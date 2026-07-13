@@ -123,6 +123,21 @@ OpenAgentTelemetry (OAT) is a **self-hostable, open-source AI Agent observabilit
 - **Event Timeline** — All triggered events are persisted with `metricValue`, `threshold`, and `notificationStatus` (`sent` / `failed` / `skipped`)
 - **Frontend Alert Page** — `/alerts` page for rule CRUD, enable/disable toggle, webhook test, and event timeline display
 
+### Frontend Architecture (M9)
+
+- **Project Switcher** — Global project selector in shared navigation bar, persists selection via URL query param (`?projectId=...`), auto-selects first project on initial load
+- **SSR Cookie Forwarding** — Server Components forward the `oat_session` cookie when calling backend APIs, maintaining auth context without client-side fetch
+- **API Client Split** — Three-file split (`api.shared.ts` for types, `api.server.ts` for server-only calls with cookie, `api.client.ts` for browser calls) — prevents sensitive server code from leaking to client bundles
+- **Shared Navigation** — Reusable Nav component with project switcher + page links, consistent across all authenticated pages
+- **Route-Level Guards** — Next.js middleware redirects unauthenticated users to `/login?next=...`, preserves the original target URL for post-login redirect
+- **Error/Loading Boundaries** — `error.tsx`, `loading.tsx`, `not-found.tsx` per route segment for graceful degradation
+
+### Security Hardening (M10)
+
+- **API Key SHA-256 Hashing** — API keys are hashed with SHA-256 before storage; only the last 4 characters are stored as a preview for UI display. Raw keys are shown once on creation and never retrievable again (destructive migration — old plaintext keys invalidated)
+- **IDOR Protection** — `preHandler` hook validates `projectId` existence on all `/api/*` routes; non-existent project IDs return 404 instead of leaking data
+- **Tiered Rate Limiting** — Global limit (100 req/min) + per-route overrides: login endpoint 10/min (brute-force protection), ingestion endpoint 600/min (high-throughput SDK uploads). Configurable via Fastify route options.
+
 ---
 
 ## Tech Stack
@@ -185,7 +200,7 @@ DATABASE_URL=postgresql://localhost:5432/oat \
   pnpm dev:server
 
 # 4. Start frontend (terminal 2)
-SEED_PROJECT_ID=<projectId from step above> pnpm dev:web
+SERVER_URL=http://localhost:3001 pnpm dev:web
 ```
 
 ---
@@ -289,6 +304,15 @@ llm.invoke("Hello!")  # → auto-traced as an OAT observation
 GET /health
 → { "status": "ok" }
 ```
+
+### Projects
+
+```
+GET /api/projects
+→ { "projects": [{ "id", "name", "apiKeyPreview", "createdAt" }] }
+```
+
+> **Rate Limiting (M10):** All `/api/*` routes are rate-limited. Global limit: 100 req/min. Per-route overrides: `POST /api/auth/login` 10/min, `POST /api/public/ingestion` 600/min. Exceeding the limit returns `429 Too Many Requests`.
 
 ### Authentication
 
@@ -452,7 +476,7 @@ OpenAgentTelemetry/
 ├── apps/
 │   ├── server/              # Fastify backend
 │   │   ├── src/
-│   │   │   ├── auth/        # Auth module (JWT sign/verify + global route guard)
+│   │   │   ├── auth/        # Auth module (JWT sign/verify + global route guard + IDOR preHandler)
 │   │   │   ├── db/          # Drizzle schema + database client
 │   │   │   ├── repositories/# Repository layer (interface + Postgres impl)
 │   │   │   │   ├── trace-repository
@@ -461,16 +485,18 @@ OpenAgentTelemetry/
 │   │   │   │   ├── prompt-repository
 │   │   │   │   ├── stats-repository    # Dashboard stats aggregation
 │   │   │   │   ├── alert-repository    # Alert rules + events CRUD
+│   │   │   │   ├── project-repository  # Project list + API key hash lookup
 │   │   │   │   └── user-repository     # User auth
 │   │   │   ├── routes/      # Fastify routes
 │   │   │   │   ├── health, ingestion, traces, trace-detail
 │   │   │   │   ├── scores, datasets, prompts
 │   │   │   │   ├── stats    # GET /api/stats/overview
 │   │   │   │   ├── alerts   # GET/POST/PUT/DELETE /api/alerts/*
+│   │   │   │   ├── projects # GET /api/projects
 │   │   │   │   └── auth     # login / logout / me
-│   │   │   ├── modules/     # Business logic (IngestionService, AlertEvaluator)
+│   │   │   ├── modules/     # Business logic (IngestionService, AlertEvaluator, API key hashing)
 │   │   │   └── app.ts       # Fastify app factory (closure factory pattern for DI)
-│   │   ├── drizzle/         # Database migration SQL (0000-0004)
+│   │   ├── drizzle/         # Database migration SQL (0000-0005)
 │   │   └── Dockerfile
 │   ├── web/                 # Next.js frontend
 │   │   ├── src/
@@ -481,7 +507,8 @@ OpenAgentTelemetry/
 │   │   │   │   ├── datasets/
 │   │   │   │   ├── prompts/
 │   │   │   │   └── alerts/  # Alert rules + event timeline
-│   │   │   ├── lib/         # API client
+│   │   │   ├── components/  # Shared components (Nav, ProjectSwitcher)
+│   │   │   ├── lib/         # API client (3-file split: api.shared / api.server / api.client)
 │   │   │   └── middleware.ts  # Edge login guard
 │   │   └── Dockerfile
 │   ├── sdk-ts/              # TypeScript SDK
@@ -520,7 +547,6 @@ OpenAgentTelemetry/
 | `ADMIN_EMAIL` | server | `admin@oat.dev` | Bootstrap admin email, auto-created on startup if not exists |
 | `ADMIN_PASSWORD` | server | `admin123` | Bootstrap admin password, only used on first creation (does not overwrite existing users) |
 | `SERVER_URL` | web | `http://localhost:3001` | Backend URL for frontend SSR access |
-| `SEED_PROJECT_ID` | web | — | Default Project ID to display |
 | `OAT_BASE_URL` | sdk | — | SDK ingestion target URL |
 | `OAT_API_KEY` | sdk | — | SDK authentication API Key |
 
@@ -566,6 +592,8 @@ pnpm dev:web
 - [x] **M6 — Authentication**: single admin login, Cookie+JWT, global route guard, frontend login guard
 - [x] **M7 — Python SDK**: `@traceable` decorator, batch client, LLM metadata extraction, LangChain integration
 - [x] **M8 — Alerting**: real-time evaluation, 4 metric types, sliding window SQL, webhook notification, event timeline
+- [x] **M9 — Frontend Architecture**: SSR cookie forwarding, 3-file API split, project switcher, shared Nav, error/loading boundaries
+- [x] **M10 — Security Hardening**: API Key SHA-256 hashing, IDOR projectId validation, tiered rate limiting
 - [ ] **Future**: OTLP compatibility, multi-tenant organizations, evaluation jobs, ClickHouse migration
 
 ---
