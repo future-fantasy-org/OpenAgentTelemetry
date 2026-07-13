@@ -24,3 +24,5 @@ export type { AuditLog, NewAuditLog, IAuditRepository } from './audit-repository
 export { PostgresAuditRepository } from './audit-repository.js';
 export { PostgresProviderRepository } from './provider-repository.js';
 export type { IProviderRepository, ProviderRow } from './provider-repository.js';
+export { PostgresEvaluatorRepository } from './evaluator-repository.js';
+export type { IEvaluatorRepository, EvaluatorRow, EvaluatorType, LlmJudgeConfig, NumericThresholdConfig } from './evaluator-repository.js';
