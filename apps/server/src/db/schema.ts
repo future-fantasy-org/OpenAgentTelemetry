@@ -146,3 +146,20 @@ export const alertEvents = pgTable('alert_events', {
   resolvedAt: timestamp('resolved_at', { withTimezone: true }),
   notificationStatus: text('notification_status').notNull().default('pending'),
 });
+
+// audit_logs：M11 审计日志。onResponse 钩子捕获所有写操作和错误，派生 action 后落盘
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  actorEmail: text('actor_email'),
+  actorIp: text('actor_ip'),
+  action: text('action').notNull(),
+  method: text('method').notNull(),
+  path: text('path').notNull(),
+  resourceType: text('resource_type'),
+  resourceId: text('resource_id'),
+  projectId: uuid('project_id'),
+  statusCode: integer('status_code').notNull(),
+  durationMs: integer('duration_ms'),
+  metadata: jsonb('metadata').default({}),
+});

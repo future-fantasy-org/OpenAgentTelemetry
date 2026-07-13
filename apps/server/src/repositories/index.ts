@@ -20,3 +20,5 @@ export type {
   AlertEvent,
   NewAlertEvent,
 } from './alert-repository.js';
+export type { AuditLog, NewAuditLog, IAuditRepository } from './audit-repository.js';
+export { PostgresAuditRepository } from './audit-repository.js';
