@@ -173,4 +173,36 @@ describe('SSE 实时流端点', () => {
     expect(received).toContain('"id":"t1"');
     expect(received).not.toContain('t-other');
   });
+
+  it('/api/stream/eval/:jobId 推送 item-completed 和 job-completed', async () => {
+    const { baseUrl } = await startApp();
+    const resp = await fetch(`${baseUrl}/api/stream/eval/job_1`, {
+      headers: { cookie: await authCookie() },
+    });
+    expect(resp.status).toBe(200);
+
+    const readPromise = readUntilMatch(resp.body!, 'event: eval:item-completed');
+    await new Promise((r) => setTimeout(r, 100));
+    eventBus.emit('eval:item-completed', { jobId: 'job_1', itemId: 'it_1', status: 'success' });
+    const received = await readPromise;
+    expect(received).toContain('event: eval:item-completed');
+    expect(received).toContain('"status":"success"');
+  });
+
+  it('/api/stream/eval/:jobId 按 jobId 过滤不匹配的事件', async () => {
+    const { baseUrl } = await startApp();
+    const resp = await fetch(`${baseUrl}/api/stream/eval/job_A`, {
+      headers: { cookie: await authCookie() },
+    });
+
+    eventBus.emit('eval:item-completed', { jobId: 'job_B', itemId: 'it_1', status: 'success' });
+    await new Promise((r) => setTimeout(r, 200));
+
+    const readPromise = readUntilMatch(resp.body!, 'event: eval:item-completed');
+    await new Promise((r) => setTimeout(r, 100));
+    eventBus.emit('eval:item-completed', { jobId: 'job_A', itemId: 'it_2', status: 'failed' });
+    const received = await readPromise;
+    expect(received).toContain('"jobId":"job_A"');
+    expect(received).not.toContain('"jobId":"job_B"');
+  });
 });
