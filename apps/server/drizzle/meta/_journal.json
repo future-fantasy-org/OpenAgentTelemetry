@@ -29,6 +29,13 @@
       "when": 1783610000000,
       "tag": "0003_users",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783918000000,
+      "tag": "0005_api_key_hash",
+      "breakpoints": true
     }
   ]
 }

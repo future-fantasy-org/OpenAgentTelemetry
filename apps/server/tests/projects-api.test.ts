@@ -30,7 +30,7 @@ async function authHeaders(): Promise<{ cookie: string }> {
 const mockProject: ProjectListItem = {
   id: 'p1',
   name: 'demo',
-  apiKey: 'demo-key',
+  apiKeyPreview: 'abcd',
   createdAt: new Date('2026-01-01'),
 };
 
@@ -44,6 +44,7 @@ function makeMockDeps() {
   const projectRepo: IProjectRepository = {
     async findByApiKey() { return null; },
     async listAll() { return [mockProject]; },
+    async exists() { return true; },
   };
   const scoreRepo: IScoreRepository = {
     async createScore() { return 's1'; },
@@ -114,7 +115,7 @@ describe('GET /api/projects', () => {
     expect(body.projects[0]).toMatchObject({
       id: 'p1',
       name: 'demo',
-      apiKey: 'demo-key',
+      apiKeyPreview: 'abcd',
     });
   });
 });

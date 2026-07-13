@@ -9,7 +9,8 @@ const projectRepo = new PostgresProjectRepository();
 // 探测 DB + 种子数据：连不上或没种子数据就跳过整个 describe（不算失败）
 let project: { id: string; name: string } | null = null;
 try {
-  project = await projectRepo.findByApiKey('demo-api-key');
+  const all = await projectRepo.listAll();
+  project = all[0] ? { id: all[0].id, name: all[0].name } : null;
 } catch {
   project = null;
 }

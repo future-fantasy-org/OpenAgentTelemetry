@@ -39,6 +39,7 @@ function makeMockRepos(listReturn: TraceListItem[] = []) {
       return key === 'valid-key' ? { id: 'proj-1', name: 'test' } : null;
     },
     async listAll() { return []; },
+    async exists() { return true; },
   };
   const scoreRepo: IScoreRepository = {
     async createScore() { return 'score-1'; },
