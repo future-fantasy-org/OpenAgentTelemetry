@@ -1,5 +1,6 @@
 import { hash } from '@node-rs/argon2';
 import { buildApp } from './app.js';
+import { validateEncryptionKey } from './modules/crypto.js';
 import {
   PostgresTraceRepository,
   PostgresProjectRepository,
@@ -35,6 +36,8 @@ async function main() {
     console.error('JWT_SECRET 未设置，拒绝启动。请在环境变量里配置一个随机字符串。');
     process.exit(1);
   }
+
+  validateEncryptionKey();
 
   const userRepo = new PostgresUserRepository();
   await bootstrapAdmin(userRepo);
