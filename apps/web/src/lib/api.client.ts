@@ -6,9 +6,10 @@ import type {
   NewAlertRule,
   AuthUser,
   AuditLog,
+  TraceListItem,
 } from './api.shared';
 
-export type { StatsOverview, AlertRule, AlertEvent, NewAlertRule, AuthUser, AuditLog } from './api.shared';
+export type { StatsOverview, AlertRule, AlertEvent, NewAlertRule, AuthUser, AuditLog, TraceListItem } from './api.shared';
 
 async function get<T>(url: string): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, {
@@ -115,4 +116,16 @@ export async function listAuditLogs(params: {
   if (params.cursor) qs.set('cursor', params.cursor);
   if (params.limit) qs.set('limit', String(params.limit));
   return get(`/api/audit/logs?${qs.toString()}`);
+}
+
+export async function listTracesClient(params: {
+  projectId: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<{ traces: TraceListItem[]; nextCursor: string | null }> {
+  const qs = new URLSearchParams();
+  qs.set('projectId', params.projectId);
+  if (params.cursor) qs.set('cursor', params.cursor);
+  if (params.limit) qs.set('limit', String(params.limit));
+  return get(`/api/traces?${qs.toString()}`);
 }

@@ -138,6 +138,20 @@ OpenAgentTelemetry (OAT) is a **self-hostable, open-source AI Agent observabilit
 - **IDOR Protection** — `preHandler` hook validates `projectId` existence on all `/api/*` routes; non-existent project IDs return 404 instead of leaking data
 - **Tiered Rate Limiting** — Global limit (100 req/min) + per-route overrides: login endpoint 10/min (brute-force protection), ingestion endpoint 600/min (high-throughput SDK uploads). Configurable via Fastify route options.
 
+### Audit Logging (M11)
+
+- **Global `onResponse` Hook** — Captures every API response; filters to only mutations (POST/PUT/PATCH/DELETE) + errors (≥400); skips successful GETs and health checks to keep volume low
+- **`audit_logs` Table** — Persists actor email/IP, derived action, method, path, resource type/id, project ID, status code, duration, and JSON metadata. Indexed by `created_at DESC`, `project_id`, `action`
+- **`deriveAction` Pure Function** — Maps `{method, path, statusCode}` to a semantic action string (e.g. `auth.login_failed`, `project.create`, `alert_rule.update`, `idor.blocked`). Special-cases login/logout/ingestion; IDOR detection (404 + GET + `/api/`) runs before resource matching
+- **`/audit` Page** — Server-rendered list with cursor pagination, action filter dropdown, color-coded status badges, and SSE real-time push of new entries
+
+### Real-time SSE + Cursor Pagination (M12)
+
+- **EventBus Singleton** — Process-level `EventEmitter` (max 200 listeners) emits three typed events: `trace:created`, `alert:triggered`, `audit:logged`. `IngestionService` and `AlertEvaluator` emit after DB writes
+- **SSE Three Streams** — `GET /api/stream/{traces,alert-events,audit-logs}` with `text/event-stream`, 30s heartbeat, `req.raw.on('close')` cleanup, and `config: { rateLimit: false }` to bypass global limiter
+- **Cursor Pagination** — `Traces` and `/api/audit/logs` return `{ data, nextCursor }` using `WHERE created_at < cursor` + `limit + 1` trick to detect hasMore. Replaces offset pagination for stable deep paging
+- **Frontend Live Updates** — `EventSource` subscribes per page (Traces, Alerts, Audit); new entries prepend to lists; "Load more" button fetches next cursor page; SSE connection indicator shown
+
 ---
 
 ## Tech Stack
@@ -594,7 +608,9 @@ pnpm dev:web
 - [x] **M8 — Alerting**: real-time evaluation, 4 metric types, sliding window SQL, webhook notification, event timeline
 - [x] **M9 — Frontend Architecture**: SSR cookie forwarding, 3-file API split, project switcher, shared Nav, error/loading boundaries
 - [x] **M10 — Security Hardening**: API Key SHA-256 hashing, IDOR projectId validation, tiered rate limiting
-- [ ] **Future**: OTLP compatibility, multi-tenant organizations, evaluation jobs, ClickHouse migration
+- [x] **M11 — Audit Logging**: `onResponse` global hook, `audit_logs` table, `deriveAction` pure function, `/audit` page
+- [x] **M12 — Real-time SSE + Pagination**: EventBus + SSE three streams (traces/alerts/audit), cursor pagination
+- [ ] **Future**: Multi-tenant organizations, evaluation jobs, ClickHouse migration
 
 ---
 

@@ -82,7 +82,11 @@ function makeMockRepos(listReturn: TraceListItem[] = []) {
     async createEvent() {},
   };
   const alertEvaluator = { evaluate: async () => {}, testWebhook: async () => false } as unknown as AlertEvaluator;
-  return { traceRepo, projectRepo, scoreRepo, datasetRepo, promptRepo, statsRepo, userRepo, alertRepo, alertEvaluator, stored };
+  const auditRepo: IAuditRepository = {
+    async log() { return {} as never; },
+    async list() { return { logs: [], nextCursor: null }; },
+  };
+  return { traceRepo, projectRepo, scoreRepo, datasetRepo, promptRepo, statsRepo, userRepo, alertRepo, alertEvaluator, auditRepo, stored };
 }
 
 describe('Ingestion API', () => {

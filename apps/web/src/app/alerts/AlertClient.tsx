@@ -38,6 +38,7 @@ export default function AlertClient({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [sseConnected, setSseConnected] = useState(false);
 
   const reload = useCallback(async () => {
     if (!projectId) return;
@@ -60,6 +61,24 @@ export default function AlertClient({ projectId }: { projectId: string }) {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  // M12: SSE 实时推送新告警事件
+  useEffect(() => {
+    const es = new EventSource(`/api/stream/alert-events?projectId=${encodeURIComponent(projectId)}`);
+    es.onopen = () => setSseConnected(true);
+    es.onerror = () => setSseConnected(false);
+    es.addEventListener('alert:triggered', (e: MessageEvent) => {
+      try {
+        const event: AlertEvent = JSON.parse(e.data);
+        event.triggeredAt = typeof event.triggeredAt === 'string' ? event.triggeredAt : new Date(event.triggeredAt).toISOString();
+        setEvents((prev) => {
+          if (prev.some((x) => x.id === event.id && event.id)) return prev;
+          return [event, ...prev].slice(0, 100);
+        });
+      } catch {}
+    });
+    return () => { es.close(); };
+  }, [projectId]);
 
   async function handleToggle(rule: AlertRule) {
     try {

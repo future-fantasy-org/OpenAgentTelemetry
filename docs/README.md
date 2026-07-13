@@ -43,6 +43,7 @@ docs/
 | [Python SDK + 告警系统设计规格](./specs/2026-07-12-python-sdk-alerting-design.md) | M7 Python SDK（contextvars + @traceable + LangChain）+ M8 告警系统（实时评估引擎 + 滑动窗口 SQL + Webhook）的设计 |
 | [M9 鉴权修复 + 前端骨架设计规格](./specs/2026-07-12-m9-auth-frontend-skeleton-design.md) | GET /api/projects 端点、API 客户端三文件拆分（server-only 边界）、SSR cookie 转发、ProjectSwitcher + 共享 Nav、layout headers() 读 URL |
 | [M10 安全加固设计规格](./specs/2026-07-13-m10-security-hardening-design.md) | API Key SHA-256 哈希化（破坏性迁移）、IDOR projectId 存在性 preHandler 校验、@fastify/rate-limit 分层限流设计 |
+| [M11/M12 审计日志与实时刷新设计规格](./specs/2026-07-13-m11-m12-audit-realtime-design.md) | onResponse 审计钩子 + EventBus、audit_logs 表、SSE 三路实时流、cursor 分页 |
 
 ### 实现计划（plans/）
 
@@ -71,4 +72,6 @@ docs/
 | M8 — 告警系统 | ✅ 完成 | 实时评估触发、4 指标滑动窗口、Webhook、事件时间线 |
 | M9 — 鉴权修复 + 前端骨架 | ✅ 完成 | SSR cookie 转发、API 三文件拆分、项目选择器、共享 Nav、error/loading 边界 |
 | M10 — 安全加固 | ✅ 完成 | API Key SHA-256 哈希化、IDOR projectId 存在性校验、分层限流 |
-| 未来 | 规划中 | OTLP 兼容、多租户组织、评估任务、ClickHouse 迁移 |
+| M11 — 审计日志 | ✅ 完成 | onResponse 全局钩子、audit_logs 表、derive-action 派生、/audit 页面 |
+| M12 — 实时刷新 + 分页 | ✅ 完成 | EventBus + SSE 三路流（traces/alerts/audit）、cursor 分页 |
+| 未来 | 规划中 | 多租户组织、评估任务、ClickHouse 迁移 |

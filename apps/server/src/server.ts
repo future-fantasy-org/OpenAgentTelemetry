@@ -9,6 +9,7 @@ import {
   PostgresStatsRepository,
   PostgresUserRepository,
   PostgresAlertRepository,
+  PostgresAuditRepository,
 } from './repositories/index.js';
 import { AlertEvaluator } from './modules/alert-evaluator.js';
 
