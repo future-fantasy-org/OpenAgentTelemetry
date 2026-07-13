@@ -48,6 +48,7 @@ docs/
 | [M6：用户认证](./plans/2026-07-09-m6-admin-auth.md) | users 表迁移、JWT 签发/验证（jose）、argon2 密码哈希、全局 preHandler 路由守卫、admin 引导、前端登录页 + Edge middleware |
 | [M7：Python SDK](./plans/2026-07-12-m7-python-sdk.md) | Python SDK 包脚手架、contextvars 上下文管理、批量客户端（threading）、@traceable 装饰器（同步+异步）、LangChain BaseCallbackHandler 集成 |
 | [M8：告警系统](./plans/2026-07-12-m8-alerting.md) | alert_rules/alert_events 表迁移、Alert Repository、AlertEvaluator（4 指标滑动窗口 SQL + 60s 防抖 + Webhook）、REST API、前端告警页面 |
+| [M9：鉴权修复 + 前端骨架](./plans/2026-07-12-m9-auth-frontend-skeleton.md) | 后端 GET /api/projects、API 客户端三文件拆分（server-only 边界）、cookie 转发、ProjectSwitcher + 共享 Nav、layout headers() 读 URL、middleware next 参数、error/loading/not-found 边界 |
 
 ## 里程碑总览
 
@@ -61,4 +62,6 @@ docs/
 | M6 — 用户认证 | ✅ 完成 | 单管理员登录、Cookie+JWT、路由守卫 |
 | M7 — Python SDK | ✅ 完成 | @traceable 装饰器、批量客户端、LLM 元数据提取、LangChain 集成 |
 | M8 — 告警系统 | ✅ 完成 | 实时评估触发、4 指标滑动窗口、Webhook、事件时间线 |
+| M9 — 鉴权修复 + 前端骨架 | ✅ 完成 | SSR cookie 转发、API 三文件拆分、项目选择器、共享 Nav、error/loading 边界 |
+| M10 — 安全加固 | 📋 规划中 | API Key 哈希化、全局限流、IDOR projectId 归属校验 |
 | 未来 | 规划中 | OTLP 兼容、多租户组织、评估任务、ClickHouse 迁移 |
