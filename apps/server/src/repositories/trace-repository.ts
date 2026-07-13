@@ -1,10 +1,10 @@
 import { db, schema } from '../db/client.js';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, lt, and } from 'drizzle-orm';
 import type { Observation } from '@oat/shared';
 
 // 接口定义：业务层依赖接口而非实现（为未来换存储预留）
 export interface ITraceRepository {
-  listTraces(projectId: string, limit: number): Promise<TraceListItem[]>;
+  listTraces(projectId: string, limit: number, cursor?: string): Promise<TraceListItem[]>;
   getTraceDetail(traceId: string): Promise<TraceDetail | null>;
   createTraceWithObservations(trace: NewTrace, observations: Observation[]): Promise<void>;
 }
@@ -60,7 +60,11 @@ export type NewTrace = {
 
 // Postgres 实现
 export class PostgresTraceRepository implements ITraceRepository {
-  async listTraces(projectId: string, limit = 50): Promise<TraceListItem[]> {
+  async listTraces(projectId: string, limit = 50, cursor?: string): Promise<TraceListItem[]> {
+    const conditions = [eq(schema.traces.projectId, projectId)];
+    if (cursor) {
+      conditions.push(lt(schema.traces.timestamp, new Date(cursor)));
+    }
     const rows = await db
       .select({
         id: schema.traces.id,
@@ -70,7 +74,7 @@ export class PostgresTraceRepository implements ITraceRepository {
         timestamp: schema.traces.timestamp,
       })
       .from(schema.traces)
-      .where(eq(schema.traces.projectId, projectId))
+      .where(and(...conditions))
       .orderBy(desc(schema.traces.timestamp))
       .limit(limit);
     return rows;
