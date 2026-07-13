@@ -15,6 +15,7 @@ import { buildAlertRoutes } from './routes/alerts.js';
 import { buildProjectRoutes } from './routes/projects.js';
 import { registerAuthHook } from './auth/require-auth.js';
 import { registerProjectAccessHook } from './auth/require-project.js';
+import { registerAuditHook } from './auth/register-audit-hook.js';
 import type { ITraceRepository } from './repositories/trace-repository.js';
 import type { IProjectRepository } from './repositories/project-repository.js';
 import type { IScoreRepository } from './repositories/score-repository.js';
@@ -23,6 +24,7 @@ import type { IPromptRepository } from './repositories/prompt-repository.js';
 import type { IStatsRepository } from './repositories/stats-repository.js';
 import type { IUserRepository } from './repositories/user-repository.js';
 import type { IAlertRepository } from './repositories/alert-repository.js';
+import type { IAuditRepository } from './repositories/audit-repository.js';
 import type { AlertEvaluator } from './modules/alert-evaluator.js';
 
 // module augmentation：让 FastifyRequest 类型带上可选 user 字段
@@ -43,6 +45,7 @@ export interface AppDeps {
   statsRepo: IStatsRepository;
   userRepo: IUserRepository;
   alertRepo: IAlertRepository;
+  auditRepo: IAuditRepository;
   alertEvaluator: AlertEvaluator;
 }
 
@@ -75,6 +78,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   // 保护所有 /api/*（除放行名单），让 SDK 摄取 /api/public/* 和 /api/auth/login 不受影响
   registerAuthHook(app);
   registerProjectAccessHook(app, deps.projectRepo);
+  registerAuditHook(app, deps.auditRepo);
 
   return app;
 }

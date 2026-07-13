@@ -10,6 +10,7 @@ import type {
   IStatsRepository,
   IUserRepository,
   IAlertRepository,
+  IAuditRepository,
   TraceListItem,
   TraceDetail,
 } from '../src/repositories/index.js';

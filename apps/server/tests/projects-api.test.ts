@@ -10,6 +10,7 @@ import type {
   IStatsRepository,
   IUserRepository,
   IAlertRepository,
+  IAuditRepository,
   TraceListItem,
   TraceDetail,
   ProjectListItem,
@@ -90,7 +91,11 @@ function makeMockDeps() {
     async createEvent() {},
   };
   const alertEvaluator = { evaluate: async () => {}, testWebhook: async () => false } as unknown as AlertEvaluator;
-  return { traceRepo, projectRepo, scoreRepo, datasetRepo, promptRepo, statsRepo, userRepo, alertRepo, alertEvaluator };
+  const auditRepo: IAuditRepository = {
+    async log(entry) { return { ...entry, id: 'a1', createdAt: new Date() } as any; },
+    async list() { return { logs: [], nextCursor: null }; },
+  };
+  return { traceRepo, projectRepo, scoreRepo, datasetRepo, promptRepo, statsRepo, userRepo, alertRepo, auditRepo, alertEvaluator };
 }
 
 describe('GET /api/projects', () => {

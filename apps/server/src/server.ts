@@ -50,6 +50,7 @@ async function main() {
     statsRepo: new PostgresStatsRepository(),
     userRepo,
     alertRepo,
+    auditRepo: new PostgresAuditRepository(),
     alertEvaluator,
   });
 
