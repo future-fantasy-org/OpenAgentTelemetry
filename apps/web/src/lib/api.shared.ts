@@ -162,6 +162,22 @@ export type ProjectListItem = {
   createdAt: string;
 };
 
+export type AuditLog = {
+  id: string;
+  createdAt: string;
+  actorEmail: string | null;
+  actorIp: string | null;
+  action: string;
+  method: string;
+  path: string;
+  resourceType: string | null;
+  resourceId: string | null;
+  projectId: string | null;
+  statusCode: number;
+  durationMs: number | null;
+  metadata: Record<string, unknown>;
+};
+
 export const isServer = typeof window === 'undefined';
 
 export const API_BASE = isServer

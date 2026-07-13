@@ -36,6 +36,7 @@ export function Nav({
     { href: '/datasets', label: '数据集' },
     { href: '/prompts', label: 'Prompts' },
     { href: '/alerts', label: '告警' },
+    { href: '/audit', label: '审计' },
   ];
 
   return (

@@ -5,9 +5,10 @@ import type {
   AlertEvent,
   NewAlertRule,
   AuthUser,
+  AuditLog,
 } from './api.shared';
 
-export type { StatsOverview, AlertRule, AlertEvent, NewAlertRule, AuthUser } from './api.shared';
+export type { StatsOverview, AlertRule, AlertEvent, NewAlertRule, AuthUser, AuditLog } from './api.shared';
 
 async function get<T>(url: string): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, {
@@ -98,4 +99,20 @@ export async function deleteAlertRule(id: string): Promise<void> {
 
 export async function testAlertWebhook(id: string): Promise<{ ok: boolean }> {
   return post(`/api/alerts/rules/${id}/test`, {});
+}
+
+export async function listAuditLogs(params: {
+  projectId?: string;
+  action?: string;
+  actor?: string;
+  cursor?: string;
+  limit?: number;
+} = {}): Promise<{ logs: AuditLog[]; nextCursor: string | null }> {
+  const qs = new URLSearchParams();
+  if (params.projectId) qs.set('projectId', params.projectId);
+  if (params.action) qs.set('action', params.action);
+  if (params.actor) qs.set('actor', params.actor);
+  if (params.cursor) qs.set('cursor', params.cursor);
+  if (params.limit) qs.set('limit', String(params.limit));
+  return get(`/api/audit/logs?${qs.toString()}`);
 }
