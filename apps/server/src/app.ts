@@ -29,9 +29,12 @@ import type { IAlertRepository } from './repositories/alert-repository.js';
 import type { IAuditRepository } from './repositories/audit-repository.js';
 import type { IProviderRepository } from './repositories/provider-repository.js';
 import type { IEvaluatorRepository } from './repositories/evaluator-repository.js';
+import type { IEvalJobRepository } from './repositories/eval-job-repository.js';
 import type { AlertEvaluator } from './modules/alert-evaluator.js';
+import type { EvalWorker } from './modules/eval-worker.js';
 import { buildEvalProviderRoutes } from './routes/eval-providers.js';
 import { buildEvalEvaluatorRoutes } from './routes/eval-evaluators.js';
+import { buildEvalJobRoutes } from './routes/eval-jobs.js';
 
 // module augmentation：让 FastifyRequest 类型带上可选 user 字段
 // preHandler 校验 JWT 后把 {userId,email,role} 挂上去，路由里可直接 req.user 读
@@ -55,6 +58,8 @@ export interface AppDeps {
   alertEvaluator: AlertEvaluator;
   providerRepo?: IProviderRepository;
   evaluatorRepo?: IEvaluatorRepository;
+  evalJobRepo?: IEvalJobRepository;
+  evalWorker?: EvalWorker;
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
@@ -87,6 +92,13 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   }
   if (deps.evaluatorRepo) {
     await app.register(buildEvalEvaluatorRoutes({ evaluatorRepo: deps.evaluatorRepo }));
+  }
+  if (deps.evalJobRepo && deps.datasetRepo && deps.evalWorker) {
+    await app.register(buildEvalJobRoutes({
+      evalJobRepo: deps.evalJobRepo,
+      datasetRepo: deps.datasetRepo,
+      evalWorker: deps.evalWorker,
+    }));
   }
   await app.register(buildStreamRoutes);
 

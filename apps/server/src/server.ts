@@ -11,8 +11,12 @@ import {
   PostgresUserRepository,
   PostgresAlertRepository,
   PostgresAuditRepository,
+  PostgresProviderRepository,
+  PostgresEvaluatorRepository,
+  PostgresEvalJobRepository,
 } from './repositories/index.js';
 import { AlertEvaluator } from './modules/alert-evaluator.js';
+import { initEvalWorker } from './modules/eval-worker.js';
 
 // 引导管理员：启动时读 ADMIN_EMAIL/ADMIN_PASSWORD，若 users 表无该 email 则创建
 // 幂等：已存在则跳过（不覆盖密码，避免重启冲掉管理员手动改的密码）
@@ -45,17 +49,39 @@ async function main() {
   const alertRepo = new PostgresAlertRepository();
   const alertEvaluator = new AlertEvaluator(alertRepo);
 
+  const providerRepo = new PostgresProviderRepository();
+  const evaluatorRepo = new PostgresEvaluatorRepository();
+  const evalJobRepo = new PostgresEvalJobRepository();
+  const datasetRepo = new PostgresDatasetRepository();
+  const traceRepo = new PostgresTraceRepository();
+  const scoreRepo = new PostgresScoreRepository();
+  const promptRepo = new PostgresPromptRepository();
+
+  // 崩溃恢复：清扫上次未完成的 running/pending 任务
+  const interrupted = await evalJobRepo.interruptRunning();
+  if (interrupted > 0) {
+    console.log(`[eval] 检测到 ${interrupted} 个未完成任务，已标记为 interrupted`);
+  }
+
+  const evalWorker = initEvalWorker({
+    evalJobRepo, evaluatorRepo, providerRepo, datasetRepo, traceRepo, scoreRepo, promptRepo,
+  });
+
   const app = await buildApp({
-    traceRepo: new PostgresTraceRepository(),
+    traceRepo,
     projectRepo: new PostgresProjectRepository(),
-    scoreRepo: new PostgresScoreRepository(),
-    datasetRepo: new PostgresDatasetRepository(),
-    promptRepo: new PostgresPromptRepository(),
+    scoreRepo,
+    datasetRepo,
+    promptRepo,
     statsRepo: new PostgresStatsRepository(),
     userRepo,
     alertRepo,
     auditRepo: new PostgresAuditRepository(),
     alertEvaluator,
+    providerRepo,
+    evaluatorRepo,
+    evalJobRepo,
+    evalWorker,
   });
 
   const port = Number(process.env.PORT ?? 3001);
