@@ -158,7 +158,7 @@ export type NewAlertRule = {
 export type ProjectListItem = {
   id: string;
   name: string;
-  apiKey: string;
+  apiKeyPreview: string;
   createdAt: string;
 };
 
