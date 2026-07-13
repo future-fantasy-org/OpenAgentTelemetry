@@ -1,6 +1,7 @@
 import { db, schema } from '../db/client.js';
 import { sql } from 'drizzle-orm';
-import type { IAlertRepository, AlertRule } from '../repositories/alert-repository.js';
+import type { IAlertRepository, AlertRule, AlertEvent } from '../repositories/alert-repository.js';
+import { eventBus } from './event-bus.js';
 
 // 支持的指标类型。每项对应 METRIC_QUERIES 里的一个滑动窗口聚合函数
 type Metric = 'error_rate' | 'p99_latency' | 'cost_rate' | 'trace_rate';

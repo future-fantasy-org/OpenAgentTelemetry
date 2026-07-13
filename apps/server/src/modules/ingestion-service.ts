@@ -1,5 +1,7 @@
 import type { ITraceRepository } from '../repositories/trace-repository.js';
+import type { TraceListItem } from '../repositories/trace-repository.js';
 import type { Observation } from '@oat/shared';
+import { eventBus } from './event-bus.js';
 
 // alertEvaluator 用结构化类型而非直接引 AlertEvaluator 类：
 // 避免 ingestion-service 反过来依赖 alert-evaluator（防循环依赖），且便于测试 mock
@@ -35,6 +37,15 @@ export class IngestionService {
         },
         obs,
       );
+      // M12: emit trace:created 事件供 SSE 订阅
+      const trace: TraceListItem = {
+        id: traceId,
+        name,
+        userId: obs[0]?.userId ?? null,
+        sessionId: obs[0]?.sessionId ?? null,
+        timestamp: new Date(),
+      };
+      eventBus.emit('trace:created', { projectId, trace });
     }
 
     // 写入完成后非阻塞触发告警评估：
