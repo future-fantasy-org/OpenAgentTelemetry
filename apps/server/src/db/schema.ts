@@ -210,7 +210,7 @@ export const evalJobs = pgTable('eval_jobs', {
 
 export const evalJobItems = pgTable('eval_job_items', {
   id: uuid('id').primaryKey().defaultRandom(),
-  jobId: uuid('job_id').notNull().references(() => evalJobs.id).onDelete('cascade'),
+  jobId: uuid('job_id').notNull().references(() => evalJobs.id, { onDelete: 'cascade' }),
   datasetItemId: uuid('dataset_item_id').notNull().references(() => datasetItems.id),
   status: text('status').notNull().default('pending'),
   output: jsonb('output').default(null),

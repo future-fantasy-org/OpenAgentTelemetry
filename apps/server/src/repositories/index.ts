@@ -22,3 +22,5 @@ export type {
 } from './alert-repository.js';
 export type { AuditLog, NewAuditLog, IAuditRepository } from './audit-repository.js';
 export { PostgresAuditRepository } from './audit-repository.js';
+export { PostgresProviderRepository } from './provider-repository.js';
+export type { IProviderRepository, ProviderRow } from './provider-repository.js';

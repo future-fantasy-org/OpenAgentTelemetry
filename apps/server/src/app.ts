@@ -27,7 +27,9 @@ import type { IStatsRepository } from './repositories/stats-repository.js';
 import type { IUserRepository } from './repositories/user-repository.js';
 import type { IAlertRepository } from './repositories/alert-repository.js';
 import type { IAuditRepository } from './repositories/audit-repository.js';
+import type { IProviderRepository } from './repositories/provider-repository.js';
 import type { AlertEvaluator } from './modules/alert-evaluator.js';
+import { buildEvalProviderRoutes } from './routes/eval-providers.js';
 
 // module augmentation：让 FastifyRequest 类型带上可选 user 字段
 // preHandler 校验 JWT 后把 {userId,email,role} 挂上去，路由里可直接 req.user 读
@@ -49,6 +51,7 @@ export interface AppDeps {
   alertRepo: IAlertRepository;
   auditRepo: IAuditRepository;
   alertEvaluator: AlertEvaluator;
+  providerRepo?: IProviderRepository;
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
@@ -76,6 +79,9 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(buildAlertRoutes(deps));
   await app.register(buildProjectRoutes(deps));
   await app.register(buildAuditRoutes(deps));
+  if (deps.providerRepo) {
+    await app.register(buildEvalProviderRoutes({ providerRepo: deps.providerRepo }));
+  }
   await app.register(buildStreamRoutes);
 
   // 全局鉴权钩子：必须在所有路由注册之后、listen 之前加
