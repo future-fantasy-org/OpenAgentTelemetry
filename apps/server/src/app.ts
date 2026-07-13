@@ -13,6 +13,7 @@ import { buildStatsRoutes } from './routes/stats.js';
 import { buildAuthRoutes } from './routes/auth.js';
 import { buildAlertRoutes } from './routes/alerts.js';
 import { buildProjectRoutes } from './routes/projects.js';
+import { buildAuditRoutes } from './routes/audit.js';
 import { registerAuthHook } from './auth/require-auth.js';
 import { registerProjectAccessHook } from './auth/require-project.js';
 import { registerAuditHook } from './auth/register-audit-hook.js';
@@ -73,6 +74,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(buildAuthRoutes(deps.userRepo));
   await app.register(buildAlertRoutes(deps));
   await app.register(buildProjectRoutes(deps));
+  await app.register(buildAuditRoutes(deps));
 
   // 全局鉴权钩子：必须在所有路由注册之后、listen 之前加
   // 保护所有 /api/*（除放行名单），让 SDK 摄取 /api/public/* 和 /api/auth/login 不受影响
