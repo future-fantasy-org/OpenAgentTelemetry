@@ -163,3 +163,60 @@ export const auditLogs = pgTable('audit_logs', {
   durationMs: integer('duration_ms'),
   metadata: jsonb('metadata').default({}),
 });
+
+export const llmProviders = pgTable('llm_providers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  provider: text('provider').notNull(),
+  baseURL: text('base_url').notNull(),
+  apiKeyEnc: text('api_key_enc').notNull(),
+  apiKeyPreview: text('api_key_preview').notNull(),
+  defaultModel: text('default_model'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const evaluators = pgTable('evaluators', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  name: text('name').notNull(),
+  type: text('type').notNull(),
+  config: jsonb('config').notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const evalJobs = pgTable('eval_jobs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  name: text('name').notNull(),
+  datasetId: uuid('dataset_id').notNull().references(() => datasets.id),
+  promptId: uuid('prompt_id').notNull().references(() => prompts.id),
+  promptVersion: integer('prompt_version').notNull(),
+  providerId: uuid('provider_id').notNull().references(() => llmProviders.id),
+  model: text('model').notNull(),
+  evaluatorIds: uuid('evaluator_ids').array().notNull().default([]),
+  status: text('status').notNull().default('pending'),
+  concurrency: integer('concurrency').notNull().default(3),
+  totalItems: integer('total_items').notNull().default(0),
+  completedItems: integer('completed_items').notNull().default(0),
+  failedItems: integer('failed_items').notNull().default(0),
+  summary: jsonb('summary').default({}),
+  errorMessage: text('error_message'),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const evalJobItems = pgTable('eval_job_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  jobId: uuid('job_id').notNull().references(() => evalJobs.id).onDelete('cascade'),
+  datasetItemId: uuid('dataset_item_id').notNull().references(() => datasetItems.id),
+  status: text('status').notNull().default('pending'),
+  output: jsonb('output').default(null),
+  traceId: uuid('trace_id'),
+  latencyMs: integer('latency_ms'),
+  errorMessage: text('error_message'),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+});
