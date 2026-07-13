@@ -35,7 +35,7 @@ function toRow(r: typeof schema.llmProviders.$inferSelect): ProviderRow {
 }
 
 export class PostgresProviderRepository implements IProviderRepository {
-  async create(data) {
+  async create(data: { name: string; provider: string; baseURL: string; apiKey: string; defaultModel?: string }): Promise<ProviderRow> {
     const [row] = await db.insert(schema.llmProviders).values({
       name: data.name, provider: data.provider, baseURL: data.baseURL,
       apiKeyEnc: aesGcmEncrypt(data.apiKey), apiKeyPreview: maskKey(data.apiKey),
@@ -44,23 +44,23 @@ export class PostgresProviderRepository implements IProviderRepository {
     return toRow(row);
   }
 
-  async list() {
+  async list(): Promise<ProviderRow[]> {
     const rows = await db.select().from(schema.llmProviders).orderBy(schema.llmProviders.createdAt);
     return rows.map(toRow);
   }
 
-  async getWithKey(id: string) {
+  async getWithKey(id: string): Promise<(ProviderRow & { apiKey: string }) | null> {
     const [row] = await db.select().from(schema.llmProviders).where(eq(schema.llmProviders.id, id)).limit(1);
     if (!row) return null;
     return { ...toRow(row), apiKey: aesGcmDecrypt(row.apiKeyEnc) };
   }
 
-  async get(id: string) {
+  async get(id: string): Promise<ProviderRow | null> {
     const [row] = await db.select().from(schema.llmProviders).where(eq(schema.llmProviders.id, id)).limit(1);
     return row ? toRow(row) : null;
   }
 
-  async update(id: string, patch) {
+  async update(id: string, patch: { name?: string; baseURL?: string; apiKey?: string; defaultModel?: string }): Promise<ProviderRow | null> {
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (patch.name !== undefined) updates.name = patch.name;
     if (patch.baseURL !== undefined) updates.baseURL = patch.baseURL;
@@ -73,7 +73,7 @@ export class PostgresProviderRepository implements IProviderRepository {
     return row ? toRow(row) : null;
   }
 
-  async delete(id: string) {
+  async delete(id: string): Promise<void> {
     await db.delete(schema.llmProviders).where(eq(schema.llmProviders.id, id));
   }
 }

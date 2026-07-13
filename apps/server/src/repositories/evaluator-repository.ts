@@ -46,26 +46,26 @@ function toRow(r: typeof schema.evaluators.$inferSelect): EvaluatorRow {
 }
 
 export class PostgresEvaluatorRepository implements IEvaluatorRepository {
-  async create(data) {
+  async create(data: { projectId: string; name: string; type: EvaluatorType; config: LlmJudgeConfig | NumericThresholdConfig }): Promise<EvaluatorRow> {
     const [row] = await db.insert(schema.evaluators).values({
       projectId: data.projectId, name: data.name, type: data.type, config: data.config,
     }).returning();
     return toRow(row);
   }
 
-  async listByProject(projectId: string) {
+  async listByProject(projectId: string): Promise<EvaluatorRow[]> {
     const rows = await db.select().from(schema.evaluators)
       .where(eq(schema.evaluators.projectId, projectId))
       .orderBy(schema.evaluators.createdAt);
     return rows.map(toRow);
   }
 
-  async get(id: string) {
+  async get(id: string): Promise<EvaluatorRow | null> {
     const [row] = await db.select().from(schema.evaluators).where(eq(schema.evaluators.id, id)).limit(1);
     return row ? toRow(row) : null;
   }
 
-  async update(id: string, patch) {
+  async update(id: string, patch: { name?: string; config?: LlmJudgeConfig | NumericThresholdConfig }): Promise<EvaluatorRow | null> {
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (patch.name !== undefined) updates.name = patch.name;
     if (patch.config !== undefined) updates.config = patch.config;
@@ -73,7 +73,7 @@ export class PostgresEvaluatorRepository implements IEvaluatorRepository {
     return row ? toRow(row) : null;
   }
 
-  async delete(id: string) {
+  async delete(id: string): Promise<void> {
     await db.delete(schema.evaluators).where(eq(schema.evaluators.id, id));
   }
 }

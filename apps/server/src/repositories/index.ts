@@ -26,3 +26,13 @@ export { PostgresProviderRepository } from './provider-repository.js';
 export type { IProviderRepository, ProviderRow } from './provider-repository.js';
 export { PostgresEvaluatorRepository } from './evaluator-repository.js';
 export type { IEvaluatorRepository, EvaluatorRow, EvaluatorType, LlmJudgeConfig, NumericThresholdConfig } from './evaluator-repository.js';
+export { PostgresEvalJobRepository } from './eval-job-repository.js';
+export type {
+  IEvalJobRepository,
+  JobRow,
+  JobItemRow,
+  JobStatus,
+  ItemStatus,
+  JobSummary,
+  NewJob,
+} from './eval-job-repository.js';
