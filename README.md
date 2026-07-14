@@ -152,6 +152,16 @@ OpenAgentTelemetry (OAT) is a **self-hostable, open-source AI Agent observabilit
 - **Cursor Pagination** — `Traces` and `/api/audit/logs` return `{ data, nextCursor }` using `WHERE created_at < cursor` + `limit + 1` trick to detect hasMore. Replaces offset pagination for stable deep paging
 - **Frontend Live Updates** — `EventSource` subscribes per page (Traces, Alerts, Audit); new entries prepend to lists; "Load more" button fetches next cursor page; SSE connection indicator shown
 
+### Eval Jobs (M13)
+
+- **Global Provider Registry** — `llm_providers` table stores OpenAI-compatible endpoints (openai / custom / ollama) with AES-256-GCM encrypted API keys. Keys are decryptable for LLM calls but never returned to the frontend (only `****5678` preview)
+- **Project-level Evaluators** — Two types: `llm_judge` (calls another LLM with a judge prompt, parses numeric score, min-max normalizes to 0-1) and `numeric_threshold` (compares trace metrics like `latency_ms` / `prompt_tokens` / `completion_tokens` against an operator + threshold)
+- **In-process Worker** — Singleton `EvalWorker` with `MAX_CONCURRENCY=3`. Listens to `eval:job-started` EventBus event, pumps items through the queue, supports cancellation via `cancelledJobs` Set. On server restart, `interruptRunning()` marks stale `running`/`pending` jobs as `interrupted`
+- **Per-case Traces** — Each evaluation case produces a full trace (`metadata.source='eval'`) + observation (`type='generation'`) in a single DB transaction, so you can inspect every LLM call in the Traces page for debugging
+- **State Machine** — Jobs: `pending → running → completed/failed/cancelled/interrupted`. Items: `pending → running → success/failed`. Job terminates when all items reach a terminal state; summary aggregates per-evaluator avg / passRate / count
+- **SSE Progress Stream** — `GET /api/stream/eval/:jobId` pushes `eval:item-completed` and `eval:job-completed` events; frontend detail page updates progress bar and item list in real time
+- **5 Frontend Pages** — Provider management (create/edit/test/delete), Evaluator management (per-project, type-aware form), Job list (status badges + progress), New job (dataset/prompt-version/provider/evaluator dropdowns), Job detail (SSE live progress + summary table + item list with trace links)
+
 ---
 
 ## Tech Stack
@@ -558,6 +568,7 @@ OpenAgentTelemetry/
 | `DATABASE_URL` | server | — | PostgreSQL connection string |
 | `PORT` | server | `3001` | Backend listen port |
 | `JWT_SECRET` | server | — | **Required**. JWT signing secret, must be a random long string in production |
+| `ENCRYPTION_KEY` | server | — | **Required (M13)**. AES-256-GCM key for encrypting Provider API keys. Generate with `openssl rand -base64 32` (must decode to exactly 32 bytes) |
 | `ADMIN_EMAIL` | server | `admin@oat.dev` | Bootstrap admin email, auto-created on startup if not exists |
 | `ADMIN_PASSWORD` | server | `admin123` | Bootstrap admin password, only used on first creation (does not overwrite existing users) |
 | `SERVER_URL` | web | `http://localhost:3001` | Backend URL for frontend SSR access |
@@ -610,7 +621,8 @@ pnpm dev:web
 - [x] **M10 — Security Hardening**: API Key SHA-256 hashing, IDOR projectId validation, tiered rate limiting
 - [x] **M11 — Audit Logging**: `onResponse` global hook, `audit_logs` table, `deriveAction` pure function, `/audit` page
 - [x] **M12 — Real-time SSE + Pagination**: EventBus + SSE three streams (traces/alerts/audit), cursor pagination
-- [ ] **Future**: Multi-tenant organizations, evaluation jobs, ClickHouse migration
+- [x] **M13 — Eval Jobs**: Global Provider registry (AES-256-GCM), project-level Evaluators (llm_judge + numeric_threshold), in-process Worker (concurrency 3 + crash recovery), per-case traces for debugging, SSE live progress, 5 frontend pages
+- [ ] **Future**: Multi-tenant organizations, ClickHouse migration, distributed worker pool
 
 ---
 

@@ -14,6 +14,46 @@
 
 ---
 
+### M13 — 评估任务 — 2026-07-14
+
+`46bcc54`（设计 spec）· 多次提交实现
+
+#### Added
+- **数据库迁移** `0007_eval_tables.sql`：新增 `llm_providers`（全局 Provider）、`evaluators`（项目级评估器）、`eval_jobs`（任务实例）、`eval_job_items`（每条 case 记录）4 张表，含项目维度 + 状态索引
+- **AES-256-GCM 加密** `modules/crypto.ts`：Provider API Key 用对称加密存储（可解密用于 LLM 调用），`ENCRYPTION_KEY` 环境变量（32 字节 base64）。格式 `iv(12) + authTag(16) + ciphertext`，全部 base64
+- **OpenAI 兼容 LLM 客户端** `modules/llm-client.ts`：统一 openai/custom/ollama 三种 provider，30s AbortController 超时，返回 `{content, promptTokens, completionTokens}`
+- **全局 Provider 注册表** `POST/GET/PUT/DELETE /api/eval/providers` + `POST /api/eval/providers/:id/test`（连通性测试）。API Key 永不返回前端，仅返回 `****5678` 预览
+- **项目级评估器 CRUD** `POST/GET/PUT/DELETE /api/eval/evaluators`：支持 `llm_judge`（providerId + model + judgePrompt + min/max）和 `numeric_threshold`（metric + operator + threshold + passScore/failScore）两种类型
+- **进程内 Worker** `modules/eval-worker.ts`：单例 `EvalWorker`，`MAX_CONCURRENCY=3`，监听 `eval:job-started` 事件，队列 + pump 循环，支持取消。服务器重启时 `interruptRunning()` 清扫 stale 任务（崩溃恢复）
+- **任务 API** `POST/GET /api/eval/jobs`、`GET /api/eval/jobs/:id`、`GET /api/eval/jobs/:id/items`（分页 + 状态过滤）、`POST /api/eval/jobs/:id/cancel`、`DELETE /api/eval/jobs/:id`
+- **状态机** Job：`pending → running → completed/failed/cancelled/interrupted`；Item：`pending → running → success/failed`。所有 item 终态后自动聚合 summary（avg / passRate / count）
+- **每条 case 生成 trace**：评估用例在 DB 事务中生成完整 trace（`metadata.source='eval'`）+ observation（`type='generation'`），可在 Traces 页面逐条调试
+- **评分写入**：每个 evaluator 的评分写入 `scores` 表（`source='eval_job'`），与手动评分统一存储
+- **SSE 进度流** `GET /api/stream/eval/:jobId`：推送 `eval:item-completed` 和 `eval:job-completed` 事件，按 jobId 过滤
+- **5 个前端页面**：
+  - `/eval/providers` — Provider 管理（创建/编辑/测试连通性/删除）
+  - `/eval/evaluators` — 评估器管理（项目级，类型感知表单）
+  - `/eval/jobs` — 任务列表（状态徽章 + 进度）
+  - `/eval/jobs/new` — 新建任务（dataset/prompt 版本/provider/evaluator 下拉）
+  - `/eval/jobs/[id]` — 任务详情（SSE 实时进度 + summary 表 + item 列表含 trace 跳转）
+- **derive-action 扩展**：新增 `eval_provider` / `evaluator` / `eval_job` 三类资源识别 + `/cancel` 路径特殊分支
+- **EventBus 新增 3 个事件类型**：`EvalJobStartedEvent`、`EvalItemCompletedEvent`、`EvalJobCompletedEvent`
+
+#### Changed
+- `app.ts` AppDeps 新增 4 个可选字段（`providerRepo?` / `evaluatorRepo?` / `evalJobRepo?` / `evalWorker?`），不破坏现有 9 个测试文件的 `makeMockDeps()`
+- `server.ts` 启动时初始化 eval 栈并调用 `interruptRunning()` 崩溃恢复
+- `schema.ts` 修复 Drizzle ORM `.references()` 的 `onDelete` 语法（应为 options 参数而非链式调用）
+
+#### Security
+- Provider API Key 使用 AES-256-GCM 对称加密，`ENCRYPTION_KEY` 从环境变量读取，永不日志/永不返回前端
+
+#### Tests
+- 后端 103 个测试全部通过（crypto 6 + llm-client 5 + eval-providers 6 + eval-evaluators 6 + eval-jobs 7 + eval-worker 5 + derive-action 新增 5 + sse 新增 2 + 原有 61）
+- 前端 TypeScript 类型检查通过，Next.js build 成功
+- `scripts/verify-m13.sh` 端到端验证脚本（登录 → Provider CRUD → Evaluator CRUD → 参数校验 → 可选真实 LLM 端到端）
+
+---
+
 ### M8 — 告警系统 — 2026-07-12
 
 `adfeacd`（后端）· `565956c`（集成修复）
