@@ -10,6 +10,27 @@ jobs:
   test:
     name: Test & Type Check
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: oat
+          POSTGRES_PASSWORD: oat
+          POSTGRES_DB: oat
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U oat"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://oat:oat@localhost:5432/oat
+      JWT_SECRET: ci-test-secret-not-for-production
+      ENCRYPTION_KEY: ci-test-key-not-for-production-32bytes==
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,6 +51,9 @@ jobs:
 
       - name: Type check
         run: pnpm -r --config.verify-deps-before-run=false lint
+
+      - name: Run database migrations
+        run: pnpm --filter @oat/server exec tsx ../../scripts/seed.ts
 
       - name: Run tests
         run: pnpm -r --config.verify-deps-before-run=false test

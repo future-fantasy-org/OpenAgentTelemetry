@@ -29,34 +29,52 @@ export default async function DatasetDetailPage({ params }: { params: { id: stri
   if (!dataset && !error) error = '数据集不存在';
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
+    <main className="oat-page">
       <div className="mb-6">
-        <Link href="/datasets" className="text-sm text-gray-500 hover:text-gray-700">← 返回数据集列表</Link>
+        <Link href="/datasets" className="oat-link-quiet">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span>返回数据集列表</span>
+        </Link>
       </div>
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+
+      {error && <div className="oat-card-pad text-rose-600 mb-6">{error}</div>}
+
       {dataset && (
         <>
-          <h1 className="text-2xl font-bold mb-1">{dataset.name}</h1>
-          {dataset.description && <p className="text-gray-500 mb-6">{dataset.description}</p>}
+          <header className="oat-page-header">
+            <h1 className="oat-page-title">{dataset.name}</h1>
+            {dataset.description && <p className="oat-page-subtitle">{dataset.description}</p>}
+          </header>
 
-          <h2 className="text-lg font-semibold mb-3">测试样例（{items.length}）</h2>
+          <h2 className="text-sm font-semibold text-slate-700 mb-3">
+            测试样例（{items.length}）
+          </h2>
           <div className="space-y-3">
             {items.length === 0 && (
-              <p className="text-gray-400 text-sm">暂无样例</p>
+              <p className="text-slate-400 text-sm">暂无样例</p>
             )}
             {items.map((item) => (
-              <div key={item.id} className="rounded-lg border bg-white p-4">
-                <div className="text-xs text-gray-400 mb-2">{item.id}</div>
+              <div key={item.id} className="oat-card-pad">
+                <div className="font-data text-xs text-slate-400 mb-2">{item.id}</div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-xs font-semibold text-gray-500 mb-1">输入</div>
-                    <pre className="text-xs bg-gray-50 p-2 rounded overflow-auto max-h-40">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">输入</div>
+                    <pre className="rounded-lg bg-slate-900 p-3 font-data text-xs text-slate-100 overflow-auto max-h-40">
                       {JSON.stringify(item.input, null, 2)}
                     </pre>
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-gray-500 mb-1">期望输出</div>
-                    <pre className="text-xs bg-gray-50 p-2 rounded overflow-auto max-h-40">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">期望输出</div>
+                    <pre className="rounded-lg bg-slate-900 p-3 font-data text-xs text-slate-100 overflow-auto max-h-40">
                       {item.expectedOutput ? JSON.stringify(item.expectedOutput, null, 2) : '-'}
                     </pre>
                   </div>

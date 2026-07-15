@@ -233,11 +233,18 @@ SERVER_URL=http://localhost:3001 pnpm dev:web
 
 ### 安装
 
-```bash
-pnpm add @oat/sdk-ts
-# 或
-npm install @oat/sdk-ts
-```
+> **注意：** SDK 包尚未发布到 npm 仓库，目前需从源码安装：
+> ```bash
+> # 先构建整个 workspace
+> pnpm install && pnpm -r build
+> # 然后通过 workspace 链接或本地路径引用
+> ```
+> 发布后，标准安装命令即可使用：
+> ```bash
+> pnpm add @oat/sdk-ts
+> # 或
+> npm install @oat/sdk-ts
+> ```
 
 ### 最简示例
 
@@ -491,6 +498,101 @@ GET /api/alerts/events?projectId=<uuid>&limit=50
 
 **支持的指标：** `error_rate` (%)、`p99_latency` (ms)、`cost_rate` ($/min)、`trace_rate` (次/min)
 
+### 审计日志（M11）
+
+```
+GET /api/audit/logs?limit=50&cursor=<opaque>
+ { "logs": [{ "id", "userId", "action", "resourceType", "resourceId", "status", "statusCode", "ip", "userAgent", "createdAt" }], "nextCursor": "..." }
+```
+
+`action` 从请求自动推导：`<resourceType>.<verb>`（如 `trace.read`、`eval_job.create`、`auth.login`）。`status` 为 `success` 或 `error`。
+
+### 实时 SSE + Cursor 分页（M12）
+
+所有 SSE 端点为 `GET`，使用 `Accept: text/event-stream`，通过 `event:` / `data:` 行流式推送 JSON。
+
+```
+GET /api/stream/traces?projectId=<uuid>
+ event: trace:created      data: { "id", "name", "createdAt", ... }
+
+GET /api/stream/alert-events?projectId=<uuid>
+ event: alert:triggered    data: { "id", "ruleId", "metricValue", "threshold", "triggeredAt" }
+
+GET /api/stream/audit-logs
+ event: audit:logged       data: { "id", "action", "userId", "createdAt" }
+
+GET /api/stream/eval/:jobId
+ event: eval:job-started       data: { "jobId", "projectId" }
+ event: eval:item-completed    data: { "jobId", "itemId", "status", "scores": [...] }
+ event: eval:job-completed     data: { "jobId", "status", "summary": {...} }
+```
+
+所有列表端点（`/api/traces`、`/api/audit/logs`、`/api/alerts/events`、`/api/eval/jobs/:id/items`）支持 **cursor 分页**：
+
+```
+GET /api/<resource>?limit=50&cursor=<上一页返回的-nextCursor>
+ { "<resource>": [...], "nextCursor": "<opaque 或 null>" }
+```
+
+### 评估任务（M13）
+
+**LLM 供应商**（全局注册表，AES-256-GCM 加密 API Key）：
+
+```
+GET /api/eval/providers
+ { "providers": [{ "id", "name", "provider", "baseURL", "defaultModel", "apiKeyPreview": "****5678" }] }
+ # 注意：明文 apiKey 永不返回，仅返回 apiKeyPreview。
+
+POST /api/eval/providers
+ { "name": "OpenAI 生产", "provider": "openai", "baseURL": "https://api.openai.com/v1", "apiKey": "sk-...", "defaultModel": "gpt-4o" }
+ → { "id": "...", "apiKeyPreview": "****5678", ... }
+
+POST /api/eval/providers/:id/test
+ { "ok": true, "model": "gpt-4o" }  # 用存储的 Key 测试连通性
+
+PUT /api/eval/providers/:id        # 更新任意字段；apiKey 可选
+DELETE /api/eval/providers/:id     # 204
+```
+
+**评估器**（项目维度）：
+
+```
+GET /api/eval/evaluators?projectId=<uuid>
+ { "evaluators": [{ "id", "projectId", "name", "type": "llm_judge|numeric_threshold", "config": {...} }] }
+
+POST /api/eval/evaluators
+ # llm_judge:     { "projectId", "name", "type": "llm_judge", "config": { "providerId", "model", "judgePrompt", "min": 0, "max": 10 } }
+ # 数值阈值:      { "projectId", "name", "type": "numeric_threshold", "config": { "metric": "latency_ms", "operator": "lt|lte|gt|gte|eq", "threshold": 5000, "passScore": 1.0, "failScore": 0.0 } }
+
+PUT /api/eval/evaluators/:id
+DELETE /api/eval/evaluators/:id
+```
+
+**评估任务**：
+
+```
+POST /api/eval/jobs
+ { "projectId": "...", "datasetId": "...", "evaluatorIds": ["<uuid>", ...], "providerId": "...", "model": "gpt-4o", "concurrency": 3 }
+ → 201 { "id", "status": "pending", ... }  # 自动从数据集创建条目 + 启动 Worker
+
+GET /api/eval/jobs?projectId=<uuid>
+ { "jobs": [{ "id", "status", "totalItems", "completedItems", "createdAt", "completedAt", "summary": {...} }] }
+
+GET /api/eval/jobs/:id
+ { "job": { "id", "status", "summary": { "<评估器名>": { "avg", "passRate", "count" } } } }
+
+GET /api/eval/jobs/:id/items?limit=50&cursor=...
+ { "items": [{ "id", "status", "input", "output", "scores": [...], "traceId", "errorMessage" }] }
+
+POST /api/eval/jobs/:id/cancel     # 200 { ...cancelledJob }；若已是终态则 409
+DELETE /api/eval/jobs/:id           # 204（仅在终态时允许）
+```
+
+**任务状态机**：`pending → running → completed | failed | cancelled | interrupted`
+**条目状态机**：`pending → running → success | failed`
+
+服务器重启时，`interruptRunning()` 会将残留的 `running`/`pending` 任务扫到 `interrupted`，实现崩溃恢复。
+
 ---
 
 ## 项目结构
@@ -500,28 +602,43 @@ OpenAgentTelemetry/
 ├── apps/
 │   ├── server/              # Fastify 后端
 │   │   ├── src/
-│   │   │   ├── auth/        # 认证模块（JWT 签发/验证 + 全局路由守卫 + IDOR preHandler）
+│   │   │   ├── auth/        # 认证模块（JWT 签发/验证 + 全局路由守卫 + IDOR preHandler + 审计钩子注册）
 │   │   │   ├── db/          # Drizzle schema + 数据库客户端
 │   │   │   ├── repositories/# Repository 层（接口 + Postgres 实现）
-│   │   │   │   ├── trace-repository
-│   │   │   │   ├── score-repository
-│   │   │   │   ├── dataset-repository
-│   │   │   │   ├── prompt-repository
-│   │   │   │   ├── stats-repository    # Dashboard 统计聚合
-│   │   │   │   ├── alert-repository    # 告警规则 + 事件 CRUD
-│   │   │   │   ├── project-repository  # 项目列表 + API Key 哈希查找
-│   │   │   │   └── user-repository     # 用户认证
+│   │   │   │   ├── trace-repository      # Trace + observation CRUD
+│   │   │   │   ├── score-repository       # 评分 CRUD
+│   │   │   │   ├── dataset-repository     # 数据集 + 条目 CRUD
+│   │   │   │   ├── prompt-repository      # Prompt + 版本 CRUD
+│   │   │   │   ├── stats-repository       # Dashboard 统计聚合
+│   │   │   │   ├── alert-repository       # 告警规则 + 事件 CRUD
+│   │   │   │   ├── audit-repository       # 审计日志（cursor 分页）
+│   │   │   │   ├── project-repository     # 项目列表 + API Key 哈希查找
+│   │   │   │   ├── user-repository        # 用户认证
+│   │   │   │   ├── provider-repository    # 全局 LLM 供应商注册表（M13）
+│   │   │   │   ├── evaluator-repository   # 项目级评估器（M13）
+│   │   │   │   └── eval-job-repository    # 评估任务 + 条目状态机（M13）
 │   │   │   ├── routes/      # Fastify 路由
 │   │   │   │   ├── health, ingestion, traces, trace-detail
 │   │   │   │   ├── scores, datasets, prompts
 │   │   │   │   ├── stats    # GET /api/stats/overview
 │   │   │   │   ├── alerts   # GET/POST/PUT/DELETE /api/alerts/*
+│   │   │   │   ├── audit    # GET /api/audit/logs（cursor 分页）
 │   │   │   │   ├── projects # GET /api/projects
-│   │   │   │   └── auth     # login / logout / me
-│   │   │   ├── modules/     # 业务逻辑（IngestionService, AlertEvaluator, API Key 哈希）
+│   │   │   │   ├── stream   # SSE：traces / alert-events / audit-logs / eval
+│   │   │   │   ├── auth     # login / logout / me
+│   │   │   │   └── eval-{providers,evaluators,jobs}  # M13 评估 CRUD + cancel
+│   │   │   ├── modules/     # 业务逻辑
+│   │   │   │   ├── ingestion-service    # 批量上报 + Zod 校验
+│   │   │   │   ├── alert-evaluator       # 实时告警规则评估
+│   │   │   │   ├── api-key               # API Key 生成 + SHA-256 哈希
+│   │   │   │   ├── crypto                # AES-256-GCM 加解密（M13）
+│   │   │   │   ├── llm-client            # OpenAI 兼容 LLM 客户端（M13）
+│   │   │   │   ├── derive-action         # 审计动作从请求推导
+│   │   │   │   ├── event-bus             # 进程级 EventEmitter 单例
+│   │   │   │   └── eval-worker           # 进程内评估 Worker（M13）
 │   │   │   └── app.ts       # Fastify 应用工厂（闭包工厂模式注入依赖）
-│   │   ├── drizzle/         # 数据库迁移 SQL（0000-0005）
-│   │   └── Dockerfile
+│   │   ├── drizzle/         # 数据库迁移 SQL（0000-0007）
+│   │   └── Dockerfile       # 多阶段生产构建
 │   ├── web/                 # Next.js 前端
 │   │   ├── src/
 │   │   │   ├── app/         # App Router 页面
@@ -530,10 +647,13 @@ OpenAgentTelemetry/
 │   │   │   │   ├── traces/  # 列表 + [id] 详情
 │   │   │   │   ├── datasets/
 │   │   │   │   ├── prompts/
-│   │   │   │   └── alerts/  # 告警规则 + 事件时间线
-│   │   │   ├── lib/         # API 客户端
-│   │   │   └── middleware.ts  # Edge 登录守卫
-│   │   └── Dockerfile
+│   │   │   │   ├── alerts/  # 告警规则 + 事件时间线
+│   │   │   │   ├── audit/   # 审计日志列表（cursor + SSE）
+│   │   │   │   └── eval/    # M13：providers / evaluators / jobs / jobs/new / jobs/[id]
+│   │   │   ├── components/  # 共享组件（Nav, ProjectSwitcher）
+│   │   │   ├── lib/         # API 客户端（3 文件拆分：api.shared / api.server / api.client）
+│   │   │   └── middleware.ts  # Edge 登录守卫（排除 /api）
+│   │   └── Dockerfile       # 多阶段生产构建（standalone 输出）
 │   ├── sdk-ts/              # TypeScript SDK
 │   │   └── src/
 │   │       ├── context.ts   # AsyncLocalStorage 上下文管理
@@ -550,8 +670,12 @@ OpenAgentTelemetry/
 │   └── shared/              # 共享 Zod schema + 类型定义
 ├── scripts/
 │   ├── seed.ts              # 数据库迁移 + 种子数据
-│   └── verify-sdk.ts        # SDK 端到端验证脚本
+│   ├── verify-sdk.ts        # TS SDK 端到端验证
+│   ├── verify-python-sdk.py # Python SDK 验证
+│   ├── e2e-test.ts          # 全栈 E2E 测试
+│   └── verify-m{9,10,11-12,13}.sh  # 各里程碑 API 验证脚本
 ├── docs/                    # 设计规格、调研报告、实现计划
+├── .env.example             # 环境变量模板
 ├── docker-compose.yml
 └── pnpm-workspace.yaml
 ```

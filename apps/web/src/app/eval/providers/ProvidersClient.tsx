@@ -115,22 +115,29 @@ export function ProvidersClient({ sp }: { sp: { projectId?: string } }) {
   }
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">LLM Provider 管理</h1>
-      </div>
+    <main className="oat-page">
+      <header className="oat-page-header">
+        <div>
+          <h1 className="oat-page-title">LLM Provider 管理</h1>
+          <p className="oat-page-subtitle">模型供应商连接与密钥配置</p>
+        </div>
+      </header>
 
-      {error && <p className="text-red-600 mb-4">操作失败：{error}</p>}
+      {error && (
+        <div className="oat-card oat-card-pad mb-6 border-rose-200 bg-rose-50">
+          <p className="text-sm text-rose-700">操作失败：{error}</p>
+        </div>
+      )}
 
       <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Providers</h2>
+        <div className="oat-page-header mb-4">
+          <h2 className="oat-page-title text-lg">Providers</h2>
           <button
             onClick={() => {
               if (showForm) resetForm();
               setShowForm((v) => !v);
             }}
-            className="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+            className="oat-btn oat-btn-primary oat-btn-sm"
           >
             {showForm ? '取消' : '新建 Provider'}
           </button>
@@ -139,51 +146,51 @@ export function ProvidersClient({ sp }: { sp: { projectId?: string } }) {
         {showForm && (
           <form
             onSubmit={handleSubmit}
-            className="rounded-lg border bg-gray-50 p-4 mb-4 grid grid-cols-2 gap-3 text-sm"
+            className="oat-card oat-card-pad mb-4 grid grid-cols-2 gap-4"
           >
-            <label className="flex flex-col gap-1 col-span-2">
-              <span className="text-gray-600">名称</span>
+            <label className="flex flex-col gap-1.5 col-span-2">
+              <span className="oat-label">名称</span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="px-2 py-1 border rounded bg-white"
+                className="oat-input"
                 placeholder="如：生产 OpenAI"
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-gray-600">类型</span>
+            <label className="flex flex-col gap-1.5">
+              <span className="oat-label">类型</span>
               <select
                 value={providerType}
                 onChange={(e) => setProviderType(e.target.value as 'openai' | 'custom' | 'ollama')}
-                className="px-2 py-1 border rounded bg-white"
+                className="oat-select"
               >
                 {PROVIDER_TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-gray-600">默认模型（可选）</span>
+            <label className="flex flex-col gap-1.5">
+              <span className="oat-label">默认模型（可选）</span>
               <input
                 value={defaultModel}
                 onChange={(e) => setDefaultModel(e.target.value)}
-                className="px-2 py-1 border rounded bg-white"
+                className="oat-input"
                 placeholder="如：gpt-4o"
               />
             </label>
-            <label className="flex flex-col gap-1 col-span-2">
-              <span className="text-gray-600">Base URL</span>
+            <label className="flex flex-col gap-1.5 col-span-2">
+              <span className="oat-label">Base URL</span>
               <input
                 value={baseURL}
                 onChange={(e) => setBaseURL(e.target.value)}
                 required
-                className="px-2 py-1 border rounded bg-white"
+                className="oat-input"
                 placeholder="https://api.openai.com/v1"
               />
             </label>
-            <label className="flex flex-col gap-1 col-span-2">
-              <span className="text-gray-600">
+            <label className="flex flex-col gap-1.5 col-span-2">
+              <span className="oat-label">
                 API Key{editingId ? '（留空则不修改）' : ''}
               </span>
               <input
@@ -191,7 +198,7 @@ export function ProvidersClient({ sp }: { sp: { projectId?: string } }) {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 required={!editingId}
-                className="px-2 py-1 border rounded bg-white"
+                className="oat-input"
                 placeholder="sk-..."
               />
             </label>
@@ -199,7 +206,7 @@ export function ProvidersClient({ sp }: { sp: { projectId?: string } }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-4 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                className="oat-btn oat-btn-primary disabled:opacity-50"
               >
                 {submitting ? '提交中...' : editingId ? '保存' : '创建'}
               </button>
@@ -208,49 +215,60 @@ export function ProvidersClient({ sp }: { sp: { projectId?: string } }) {
         )}
 
         {loading ? (
-          <p className="text-gray-500">加载中...</p>
+          <p className="oat-page-subtitle">加载中...</p>
         ) : providers.length === 0 ? (
-          <p className="text-gray-400 py-4">暂无 Provider，点击「新建 Provider」创建</p>
+          <div className="oat-card oat-card-pad text-center">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
+            <p className="text-sm text-slate-500">暂无 Provider，点击「新建 Provider」创建</p>
+          </div>
         ) : (
-          <div className="rounded-lg border bg-white overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 text-gray-600">
+          <div className="oat-card overflow-hidden">
+            <table className="oat-table">
+              <thead>
                 <tr>
-                  <th className="text-left px-4 py-2">名称</th>
-                  <th className="text-left px-4 py-2">类型</th>
-                  <th className="text-left px-4 py-2">Base URL</th>
-                  <th className="text-left px-4 py-2">API Key</th>
-                  <th className="text-left px-4 py-2">默认模型</th>
-                  <th className="text-left px-4 py-2">操作</th>
+                  <th>名称</th>
+                  <th>类型</th>
+                  <th>Base URL</th>
+                  <th>API Key</th>
+                  <th>默认模型</th>
+                  <th>操作</th>
                 </tr>
               </thead>
               <tbody>
                 {providers.map((p) => (
-                  <tr key={p.id} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-2 font-medium">{p.name}</td>
-                    <td className="px-4 py-2 text-gray-600">{p.provider}</td>
-                    <td className="px-4 py-2 text-gray-600 font-mono text-xs">{p.baseURL}</td>
-                    <td className="px-4 py-2 text-gray-600 font-mono">{p.apiKeyPreview}</td>
-                    <td className="px-4 py-2 text-gray-600">{p.defaultModel ?? '-'}</td>
-                    <td className="px-4 py-2 flex gap-2">
-                      <button
-                        onClick={() => handleEdit(p)}
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        编辑
-                      </button>
-                      <button
-                        onClick={() => handleTest(p.id)}
-                        className="text-xs text-purple-600 hover:underline"
-                      >
-                        测试
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        className="text-xs text-red-600 hover:underline"
-                      >
-                        删除
-                      </button>
+                  <tr key={p.id}>
+                    <td className="font-medium text-slate-900">{p.name}</td>
+                    <td>
+                      <span className="oat-badge oat-badge-neutral">{p.provider}</span>
+                    </td>
+                    <td className="font-data text-xs text-slate-600">{p.baseURL}</td>
+                    <td className="font-data text-xs text-slate-600">{p.apiKeyPreview}</td>
+                    <td className="text-slate-600">{p.defaultModel ?? '-'}</td>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleEdit(p)}
+                          className="oat-link text-xs"
+                        >
+                          编辑
+                        </button>
+                        <button
+                          onClick={() => handleTest(p.id)}
+                          className="text-violet-600 hover:underline text-xs"
+                        >
+                          测试
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          className="text-rose-600 hover:underline text-xs"
+                        >
+                          删除
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

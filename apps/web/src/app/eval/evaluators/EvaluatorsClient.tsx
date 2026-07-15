@@ -176,22 +176,29 @@ export function EvaluatorsClient({ sp }: { sp: { projectId?: string } }) {
   }
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">评估器管理</h1>
-      </div>
+    <main className="oat-page">
+      <header className="oat-page-header">
+        <div>
+          <h1 className="oat-page-title">评估器管理</h1>
+          <p className="oat-page-subtitle">配置数值阈值与 LLM-as-Judge 评估规则</p>
+        </div>
+      </header>
 
-      {error && <p className="text-red-600 mb-4">操作失败：{error}</p>}
+      {error && (
+        <div className="oat-card oat-card-pad mb-6 border-rose-200 bg-rose-50">
+          <p className="text-sm text-rose-700">操作失败：{error}</p>
+        </div>
+      )}
 
       <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">评估器</h2>
+        <div className="oat-page-header mb-4">
+          <h2 className="oat-page-title text-lg">评估器</h2>
           <button
             onClick={() => {
               if (showForm) resetForm();
               setShowForm((v) => !v);
             }}
-            className="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+            className="oat-btn oat-btn-primary oat-btn-sm"
           >
             {showForm ? '取消' : '新建评估器'}
           </button>
@@ -200,24 +207,24 @@ export function EvaluatorsClient({ sp }: { sp: { projectId?: string } }) {
         {showForm && (
           <form
             onSubmit={handleSubmit}
-            className="rounded-lg border bg-gray-50 p-4 mb-4 grid grid-cols-2 gap-3 text-sm"
+            className="oat-card oat-card-pad mb-4 grid grid-cols-2 gap-4"
           >
-            <label className="flex flex-col gap-1 col-span-2">
-              <span className="text-gray-600">名称</span>
+            <label className="flex flex-col gap-1.5 col-span-2">
+              <span className="oat-label">名称</span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="px-2 py-1 border rounded bg-white"
+                className="oat-input"
                 placeholder="如：延迟阈值评估"
               />
             </label>
-            <label className="flex flex-col gap-1 col-span-2">
-              <span className="text-gray-600">类型</span>
+            <label className="flex flex-col gap-1.5 col-span-2">
+              <span className="oat-label">类型</span>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as EvaluatorType)}
-                className="px-2 py-1 border rounded bg-white"
+                className="oat-select"
               >
                 <option value="numeric_threshold">数值阈值 (numeric_threshold)</option>
                 <option value="llm_judge">LLM 评判 (llm_judge)</option>
@@ -226,13 +233,13 @@ export function EvaluatorsClient({ sp }: { sp: { projectId?: string } }) {
 
             {type === 'llm_judge' ? (
               <>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">Provider</span>
+                <label className="flex flex-col gap-1.5">
+                  <span className="oat-label">Provider</span>
                   <select
                     value={providerId}
                     onChange={(e) => setProviderId(e.target.value)}
                     required
-                    className="px-2 py-1 border rounded bg-white"
+                    className="oat-select"
                   >
                     <option value="">请选择</option>
                     {providers.map((p) => (
@@ -240,107 +247,107 @@ export function EvaluatorsClient({ sp }: { sp: { projectId?: string } }) {
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">模型</span>
+                <label className="flex flex-col gap-1.5">
+                  <span className="oat-label">模型</span>
                   <input
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
                     required
-                    className="px-2 py-1 border rounded bg-white"
+                    className="oat-input"
                     placeholder="如：gpt-4o"
                   />
                 </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">最小分</span>
+                <label className="flex flex-col gap-1.5">
+                  <span className="oat-label">最小分</span>
                   <input
                     type="number"
                     step="any"
                     value={min}
                     onChange={(e) => setMin(e.target.value)}
                     required
-                    className="px-2 py-1 border rounded bg-white"
+                    className="oat-input"
                   />
                 </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">最大分</span>
+                <label className="flex flex-col gap-1.5">
+                  <span className="oat-label">最大分</span>
                   <input
                     type="number"
                     step="any"
                     value={max}
                     onChange={(e) => setMax(e.target.value)}
                     required
-                    className="px-2 py-1 border rounded bg-white"
+                    className="oat-input"
                   />
                 </label>
-                <label className="flex flex-col gap-1 col-span-2">
-                  <span className="text-gray-600">评判 Prompt</span>
+                <label className="flex flex-col gap-1.5 col-span-2">
+                  <span className="oat-label">评判 Prompt</span>
                   <textarea
                     value={judgePrompt}
                     onChange={(e) => setJudgePrompt(e.target.value)}
                     required
                     rows={4}
-                    className="px-2 py-1 border rounded bg-white"
+                    className="oat-textarea"
                     placeholder="请根据以下标准对回答打分..."
                   />
                 </label>
               </>
             ) : (
               <>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">指标</span>
+                <label className="flex flex-col gap-1.5">
+                  <span className="oat-label">指标</span>
                   <select
                     value={metric}
                     onChange={(e) => setMetric(e.target.value as NumericThresholdConfig['metric'])}
-                    className="px-2 py-1 border rounded bg-white"
+                    className="oat-select"
                   >
                     {METRICS.map((m) => (
                       <option key={m.key} value={m.key}>{m.label}</option>
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">运算符</span>
+                <label className="flex flex-col gap-1.5">
+                  <span className="oat-label">运算符</span>
                   <select
                     value={operator}
                     onChange={(e) => setOperator(e.target.value as NumericThresholdConfig['operator'])}
-                    className="px-2 py-1 border rounded bg-white"
+                    className="oat-select"
                   >
                     {OPERATORS.map((o) => (
                       <option key={o.key} value={o.key}>{o.label}</option>
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">阈值</span>
+                <label className="flex flex-col gap-1.5">
+                  <span className="oat-label">阈值</span>
                   <input
                     type="number"
                     step="any"
                     value={threshold}
                     onChange={(e) => setThreshold(e.target.value)}
                     required
-                    className="px-2 py-1 border rounded bg-white"
+                    className="oat-input"
                   />
                 </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">通过分 (passScore)</span>
+                <label className="flex flex-col gap-1.5">
+                  <span className="oat-label">通过分 (passScore)</span>
                   <input
                     type="number"
                     step="any"
                     value={passScore}
                     onChange={(e) => setPassScore(e.target.value)}
                     required
-                    className="px-2 py-1 border rounded bg-white"
+                    className="oat-input"
                   />
                 </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">失败分 (failScore)</span>
+                <label className="flex flex-col gap-1.5">
+                  <span className="oat-label">失败分 (failScore)</span>
                   <input
                     type="number"
                     step="any"
                     value={failScore}
                     onChange={(e) => setFailScore(e.target.value)}
                     required
-                    className="px-2 py-1 border rounded bg-white"
+                    className="oat-input"
                   />
                 </label>
               </>
@@ -350,7 +357,7 @@ export function EvaluatorsClient({ sp }: { sp: { projectId?: string } }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-4 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                className="oat-btn oat-btn-primary disabled:opacity-50"
               >
                 {submitting ? '提交中...' : editingId ? '保存' : '创建'}
               </button>
@@ -359,43 +366,50 @@ export function EvaluatorsClient({ sp }: { sp: { projectId?: string } }) {
         )}
 
         {loading ? (
-          <p className="text-gray-500">加载中...</p>
+          <p className="oat-page-subtitle">加载中...</p>
         ) : evaluators.length === 0 ? (
-          <p className="text-gray-400 py-4">暂无评估器，点击「新建评估器」创建</p>
+          <div className="oat-card oat-card-pad text-center">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-sm text-slate-500">暂无评估器，点击「新建评估器」创建</p>
+          </div>
         ) : (
-          <div className="rounded-lg border bg-white overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 text-gray-600">
+          <div className="oat-card overflow-hidden">
+            <table className="oat-table">
+              <thead>
                 <tr>
-                  <th className="text-left px-4 py-2">名称</th>
-                  <th className="text-left px-4 py-2">类型</th>
-                  <th className="text-left px-4 py-2">配置</th>
-                  <th className="text-left px-4 py-2">操作</th>
+                  <th>名称</th>
+                  <th>类型</th>
+                  <th>配置</th>
+                  <th>操作</th>
                 </tr>
               </thead>
               <tbody>
                 {evaluators.map((ev) => (
-                  <tr key={ev.id} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-2 font-medium">{ev.name}</td>
-                    <td className="px-4 py-2 text-gray-600">
-                      <span className="text-xs font-mono px-2 py-0.5 rounded bg-gray-100 text-gray-600">
-                        {ev.type}
-                      </span>
+                  <tr key={ev.id}>
+                    <td className="font-medium text-slate-900">{ev.name}</td>
+                    <td>
+                      <span className="oat-badge oat-badge-neutral font-data">{ev.type}</span>
                     </td>
-                    <td className="px-4 py-2 text-gray-600 font-mono text-xs">{configSummary(ev)}</td>
-                    <td className="px-4 py-2 flex gap-2">
-                      <button
-                        onClick={() => handleEdit(ev)}
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        编辑
-                      </button>
-                      <button
-                        onClick={() => handleDelete(ev.id)}
-                        className="text-xs text-red-600 hover:underline"
-                      >
-                        删除
-                      </button>
+                    <td className="font-data text-xs text-slate-600">{configSummary(ev)}</td>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleEdit(ev)}
+                          className="oat-link text-xs"
+                        >
+                          编辑
+                        </button>
+                        <button
+                          onClick={() => handleDelete(ev.id)}
+                          className="text-rose-600 hover:underline text-xs"
+                        >
+                          删除
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

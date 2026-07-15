@@ -4,7 +4,7 @@ import { chatComplete } from '../src/modules/llm-client.js';
 const provider = { baseURL: 'https://api.openai.com/v1', apiKey: 'sk-test-key' };
 const messages = [{ role: 'user', content: 'hello' }];
 
-function mockFetch(body: unknown, status = 200): ReturnType<typeof vi.spyOn> {
+function mockFetch(body: unknown, status = 200) {
   return vi
     .spyOn(globalThis, 'fetch')
     .mockResolvedValue(new Response(JSON.stringify(body), { status }));

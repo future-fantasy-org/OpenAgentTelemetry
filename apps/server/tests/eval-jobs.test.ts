@@ -96,7 +96,7 @@ function makeMockDeps() {
         id, projectId: data.projectId, name: data.name,
         datasetId: data.datasetId, promptId: data.promptId, promptVersion: data.promptVersion,
         providerId: data.providerId, model: data.model, evaluatorIds: data.evaluatorIds,
-        status: 'pending', concurrency: data.concurrency ?? 3, totalItems: data.totalItems,
+        status: 'pending' as const, concurrency: data.concurrency ?? 3, totalItems: data.totalItems,
         completedItems: 0, failedItems: 0, summary: null, errorMessage: null,
         startedAt: null, completedAt: null, createdAt: now,
       };

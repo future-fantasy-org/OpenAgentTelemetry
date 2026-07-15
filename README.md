@@ -233,11 +233,18 @@ SERVER_URL=http://localhost:3001 pnpm dev:web
 
 ### Installation
 
-```bash
-pnpm add @oat/sdk-ts
-# or
-npm install @oat/sdk-ts
-```
+> **Note:** The SDK packages are not yet published to the npm registry. For now, install from source:
+> ```bash
+> # Build the workspace first
+> pnpm install && pnpm -r build
+> # Then consume from your project via workspace link or local path
+> ```
+> Once published, the standard install will work:
+> ```bash
+> pnpm add @oat/sdk-ts
+> # or
+> npm install @oat/sdk-ts
+> ```
 
 ### Minimal Example
 
@@ -491,6 +498,101 @@ GET /api/alerts/events?projectId=<uuid>&limit=50
 
 **Supported metrics:** `error_rate` (%), `p99_latency` (ms), `cost_rate` ($/min), `trace_rate` (traces/min)
 
+### Audit Logging (M11)
+
+```
+GET /api/audit/logs?limit=50&cursor=<opaque>
+ { "logs": [{ "id", "userId", "action", "resourceType", "resourceId", "status", "statusCode", "ip", "userAgent", "createdAt" }], "nextCursor": "..." }
+```
+
+`action` is auto-derived from the request: `<resourceType>.<verb>` (e.g. `trace.read`, `eval_job.create`, `auth.login`). `status` is `success` or `error`.
+
+### Real-time SSE + Cursor Pagination (M12)
+
+All SSE endpoints are `GET`, use `Accept: text/event-stream`, and stream JSON payloads via `event:` / `data:` lines.
+
+```
+GET /api/stream/traces?projectId=<uuid>
+ event: trace:created      data: { "id", "name", "createdAt", ... }
+
+GET /api/stream/alert-events?projectId=<uuid>
+ event: alert:triggered    data: { "id", "ruleId", "metricValue", "threshold", "triggeredAt" }
+
+GET /api/stream/audit-logs
+ event: audit:logged       data: { "id", "action", "userId", "createdAt" }
+
+GET /api/stream/eval/:jobId
+ event: eval:job-started       data: { "jobId", "projectId" }
+ event: eval:item-completed    data: { "jobId", "itemId", "status", "scores": [...] }
+ event: eval:job-completed     data: { "jobId", "status", "summary": {...} }
+```
+
+All list endpoints (`/api/traces`, `/api/audit/logs`, `/api/alerts/events`, `/api/eval/jobs/:id/items`) support **cursor pagination**:
+
+```
+GET /api/<resource>?limit=50&cursor=<opaque-nextCursor-from-prev-response>
+ { "<resource>": [...], "nextCursor": "<opaque or null>" }
+```
+
+### Eval Jobs (M13)
+
+**LLM Providers** (global registry, AES-256-GCM encrypted API keys):
+
+```
+GET /api/eval/providers
+ { "providers": [{ "id", "name", "provider", "baseURL", "defaultModel", "apiKeyPreview": "****5678" }] }
+ # NOTE: plaintext apiKey is NEVER returned; only apiKeyPreview.
+
+POST /api/eval/providers
+ { "name": "OpenAI Prod", "provider": "openai", "baseURL": "https://api.openai.com/v1", "apiKey": "sk-...", "defaultModel": "gpt-4o" }
+ → { "id": "...", "apiKeyPreview": "****5678", ... }
+
+POST /api/eval/providers/:id/test
+ { "ok": true, "model": "gpt-4o" }  # connectivity check with stored key
+
+PUT /api/eval/providers/:id        # update any field; apiKey optional
+DELETE /api/eval/providers/:id     # 204
+```
+
+**Evaluators** (project-scoped):
+
+```
+GET /api/eval/evaluators?projectId=<uuid>
+ { "evaluators": [{ "id", "projectId", "name", "type": "llm_judge|numeric_threshold", "config": {...} }] }
+
+POST /api/eval/evaluators
+ # llm_judge:     { "projectId", "name", "type": "llm_judge", "config": { "providerId", "model", "judgePrompt", "min": 0, "max": 10 } }
+ # numeric:       { "projectId", "name", "type": "numeric_threshold", "config": { "metric": "latency_ms", "operator": "lt|lte|gt|gte|eq", "threshold": 5000, "passScore": 1.0, "failScore": 0.0 } }
+
+PUT /api/eval/evaluators/:id
+DELETE /api/eval/evaluators/:id
+```
+
+**Eval Jobs**:
+
+```
+POST /api/eval/jobs
+ { "projectId": "...", "datasetId": "...", "evaluatorIds": ["<uuid>", ...], "providerId": "...", "model": "gpt-4o", "concurrency": 3 }
+ → 201 { "id", "status": "pending", ... }  # auto-creates items from dataset + starts worker
+
+GET /api/eval/jobs?projectId=<uuid>
+ { "jobs": [{ "id", "status", "totalItems", "completedItems", "createdAt", "completedAt", "summary": {...} }] }
+
+GET /api/eval/jobs/:id
+ { "job": { "id", "status", "summary": { "<evaluatorName>": { "avg", "passRate", "count" } } } }
+
+GET /api/eval/jobs/:id/items?limit=50&cursor=...
+ { "items": [{ "id", "status", "input", "output", "scores": [...], "traceId", "errorMessage" }] }
+
+POST /api/eval/jobs/:id/cancel     # 200 { ...cancelledJob }; 409 if already terminal
+DELETE /api/eval/jobs/:id           # 204 (only if terminal state)
+```
+
+**Job state machine**: `pending → running → completed | failed | cancelled | interrupted`
+**Item state machine**: `pending → running → success | failed`
+
+On server restart, `interruptRunning()` sweeps stale `running`/`pending` jobs to `interrupted` for crash recovery.
+
 ---
 
 ## Project Structure
@@ -500,28 +602,43 @@ OpenAgentTelemetry/
 ├── apps/
 │   ├── server/              # Fastify backend
 │   │   ├── src/
-│   │   │   ├── auth/        # Auth module (JWT sign/verify + global route guard + IDOR preHandler)
+│   │   │   ├── auth/        # Auth module (JWT sign/verify + global route guard + IDOR preHandler + audit hook register)
 │   │   │   ├── db/          # Drizzle schema + database client
 │   │   │   ├── repositories/# Repository layer (interface + Postgres impl)
-│   │   │   │   ├── trace-repository
-│   │   │   │   ├── score-repository
-│   │   │   │   ├── dataset-repository
-│   │   │   │   ├── prompt-repository
-│   │   │   │   ├── stats-repository    # Dashboard stats aggregation
-│   │   │   │   ├── alert-repository    # Alert rules + events CRUD
-│   │   │   │   ├── project-repository  # Project list + API key hash lookup
-│   │   │   │   └── user-repository     # User auth
+│   │   │   │   ├── trace-repository      # Trace + observation CRUD
+│   │   │   │   ├── score-repository       # Scores CRUD
+│   │   │   │   ├── dataset-repository     # Dataset + items CRUD
+│   │   │   │   ├── prompt-repository      # Prompt + versions CRUD
+│   │   │   │   ├── stats-repository       # Dashboard stats aggregation
+│   │   │   │   ├── alert-repository       # Alert rules + events CRUD
+│   │   │   │   ├── audit-repository       # Audit logs (cursor pagination)
+│   │   │   │   ├── project-repository     # Project list + API key hash lookup
+│   │   │   │   ├── user-repository        # User auth
+│   │   │   │   ├── provider-repository    # Global LLM provider registry (M13)
+│   │   │   │   ├── evaluator-repository   # Project-level evaluators (M13)
+│   │   │   │   └── eval-job-repository    # Eval jobs + items state machine (M13)
 │   │   │   ├── routes/      # Fastify routes
 │   │   │   │   ├── health, ingestion, traces, trace-detail
 │   │   │   │   ├── scores, datasets, prompts
 │   │   │   │   ├── stats    # GET /api/stats/overview
 │   │   │   │   ├── alerts   # GET/POST/PUT/DELETE /api/alerts/*
+│   │   │   │   ├── audit    # GET /api/audit/logs (cursor pagination)
 │   │   │   │   ├── projects # GET /api/projects
-│   │   │   │   └── auth     # login / logout / me
-│   │   │   ├── modules/     # Business logic (IngestionService, AlertEvaluator, API key hashing)
+│   │   │   │   ├── stream   # SSE: traces / alert-events / audit-logs / eval
+│   │   │   │   ├── auth     # login / logout / me
+│   │   │   │   └── eval-{providers,evaluators,jobs}  # M13 eval CRUD + cancel
+│   │   │   ├── modules/     # Business logic
+│   │   │   │   ├── ingestion-service    # Batch ingest + Zod validation
+│   │   │   │   ├── alert-evaluator       # Real-time alert rule evaluation
+│   │   │   │   ├── api-key               # API key generation + SHA-256 hash
+│   │   │   │   ├── crypto                # AES-256-GCM encrypt/decrypt (M13)
+│   │   │   │   ├── llm-client            # OpenAI-compatible LLM client (M13)
+│   │   │   │   ├── derive-action         # Audit action derivation from request
+│   │   │   │   ├── event-bus             # Process-level EventEmitter singleton
+│   │   │   │   └── eval-worker           # In-process eval worker (M13)
 │   │   │   └── app.ts       # Fastify app factory (closure factory pattern for DI)
-│   │   ├── drizzle/         # Database migration SQL (0000-0005)
-│   │   └── Dockerfile
+│   │   ├── drizzle/         # Database migration SQL (0000-0007)
+│   │   └── Dockerfile       # Multi-stage production build
 │   ├── web/                 # Next.js frontend
 │   │   ├── src/
 │   │   │   ├── app/         # App Router pages
@@ -530,11 +647,13 @@ OpenAgentTelemetry/
 │   │   │   │   ├── traces/  # List + [id] detail
 │   │   │   │   ├── datasets/
 │   │   │   │   ├── prompts/
-│   │   │   │   └── alerts/  # Alert rules + event timeline
+│   │   │   │   ├── alerts/  # Alert rules + event timeline
+│   │   │   │   ├── audit/   # Audit log list (cursor + SSE)
+│   │   │   │   └── eval/    # M13: providers / evaluators / jobs / jobs/new / jobs/[id]
 │   │   │   ├── components/  # Shared components (Nav, ProjectSwitcher)
 │   │   │   ├── lib/         # API client (3-file split: api.shared / api.server / api.client)
-│   │   │   └── middleware.ts  # Edge login guard
-│   │   └── Dockerfile
+│   │   │   └── middleware.ts  # Edge login guard (excludes /api)
+│   │   └── Dockerfile       # Multi-stage production build (standalone output)
 │   ├── sdk-ts/              # TypeScript SDK
 │   │   └── src/
 │   │       ├── context.ts   # AsyncLocalStorage context management
@@ -551,8 +670,12 @@ OpenAgentTelemetry/
 │   └── shared/              # Shared Zod schema + type definitions
 ├── scripts/
 │   ├── seed.ts              # Database migration + seed data
-│   └── verify-sdk.ts        # SDK end-to-end verification script
+│   ├── verify-sdk.ts        # TS SDK end-to-end verification
+│   ├── verify-python-sdk.py # Python SDK verification
+│   ├── e2e-test.ts          # Full-stack E2E test
+│   └── verify-m{9,10,11-12,13}.sh  # Per-milestone API verification scripts
 ├── docs/                    # Design specs, research, implementation plans
+├── .env.example             # Environment variable template
 ├── docker-compose.yml
 └── pnpm-workspace.yaml
 ```

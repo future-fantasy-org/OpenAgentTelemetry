@@ -53,25 +53,28 @@ function formatDuration(ms: number): string {
 }
 
 // 不同类型的样式（颜色 + 标签）
-const typeStyles: Record<string, { label: string; color: string; barColor: string }> = {
-  span: { label: 'SPAN', color: 'bg-blue-100 text-blue-700', barColor: 'bg-blue-400' },
-  generation: { label: 'GEN', color: 'bg-purple-100 text-purple-700', barColor: 'bg-purple-400' },
-  event: { label: 'EVENT', color: 'bg-amber-100 text-amber-700', barColor: 'bg-amber-400' },
+const typeStyles: Record<string, { label: string; badge: string; bar: string }> = {
+  span: { label: 'SPAN', badge: 'oat-badge-blue', bar: 'bg-indigo-400' },
+  generation: { label: 'GEN', badge: 'oat-badge-purple', bar: 'bg-violet-400' },
+  event: { label: 'EVENT', badge: 'oat-badge-amber', bar: 'bg-amber-400' },
 };
 
 export default async function TraceDetailPage({ params }: { params: { id: string } }) {
-  let trace;
-  let scores = [];
-  try {
-    trace = await getTraceDetail(params.id);
-    scores = await listScores(params.id);
-  } catch {
+  const trace = await getTraceDetail(params.id);
+  const scores = await listScores(params.id);
+
+  if (!trace) {
     return (
-      <main className="mx-auto max-w-6xl p-8">
-        <div className="mb-6">
-          <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">← 返回列表</Link>
+      <main className="oat-page">
+        <Link href="/" className="oat-link-quiet mb-6 inline-flex items-center gap-1 text-sm">
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          返回列表
+        </Link>
+        <div className="oat-card-pad text-slate-500">
+          Trace 不存在或暂时无法加载（可能是请求被限流，请稍后再试）。
         </div>
-        <p className="text-red-600">Trace 不存在或加载失败</p>
       </main>
     );
   }
@@ -88,26 +91,43 @@ export default async function TraceDetailPage({ params }: { params: { id: string
   const totalTokens = trace.observations.reduce((sum, o) => sum + (o.promptTokens ?? 0) + (o.completionTokens ?? 0), 0);
   const generations = trace.observations.filter((o) => o.type === 'generation').length;
 
-  return (
-    <main className="mx-auto max-w-6xl p-8">
-      <div className="mb-6">
-        <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">← 返回列表</Link>
-      </div>
+  const stats = [
+    { label: '总耗时', value: formatDuration(maxTime - minTime) },
+    { label: '节点数', value: String(trace.observations.length) },
+    { label: 'LLM 调用', value: String(generations) },
+    ...(totalTokens > 0 ? [{ label: 'Tokens', value: totalTokens.toLocaleString() }] : []),
+  ];
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">{trace.name}</h1>
-        <div className="mt-2 flex gap-6 text-sm text-gray-500">
-          <span>耗时 {formatDuration(maxTime - minTime)}</span>
-          <span>节点 {trace.observations.length}</span>
-          <span>LLM 调用 {generations}</span>
-          {totalTokens > 0 && <span>Tokens {totalTokens}</span>}
+  return (
+    <main className="oat-page-wide">
+      <Link href="/" className="oat-link-quiet mb-6 inline-flex items-center gap-1 text-sm">
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        返回列表
+      </Link>
+
+      <div className="oat-page-header">
+        <div>
+          <h1 className="oat-page-title">{trace.name}</h1>
+          <div className="oat-page-subtitle font-data">{trace.id}</div>
         </div>
       </div>
 
+      {/* Summary stats */}
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="oat-card-pad">
+            <div className="oat-kpi-label">{s.label}</div>
+            <div className="oat-kpi-value">{s.value}</div>
+          </div>
+        ))}
+      </div>
+
       {flatNodes.length === 0 ? (
-        <p className="text-gray-400">此 trace 没有子节点</p>
+        <div className="oat-card-pad text-slate-400">此 trace 没有子节点</div>
       ) : (
-        <div className="rounded-lg border bg-white overflow-hidden">
+        <div className="oat-card overflow-hidden">
           {flatNodes.map(({ obs, depth }) => {
             const style = typeStyles[obs.type] ?? typeStyles.span;
             const startMs = new Date(obs.startTime).getTime() - minTime;
@@ -116,53 +136,48 @@ export default async function TraceDetailPage({ params }: { params: { id: string
             const leftPct = (startMs / totalSpan) * 100;
 
             return (
-              <div key={obs.id} className="border-b last:border-0 px-4 py-2 hover:bg-gray-50">
+              <div key={obs.id} className="border-b border-slate-100 px-5 py-3 transition-colors last:border-0 hover:bg-slate-50/70">
                 <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 24}px` }}>
-                  {/* 类型标签 */}
-                  <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${style.color}`}>
-                    {style.label}
-                  </span>
-                  {/* 名称 */}
-                  <span className="text-sm font-medium">{obs.name}</span>
-                  {/* 耗时 */}
-                  <span className="text-xs text-gray-400 ml-auto">
+                  <span className={`oat-badge font-data ${style.badge}`}>{style.label}</span>
+                  <span className="text-sm font-medium text-slate-800">{obs.name}</span>
+                  <span className="ml-auto font-data text-xs text-slate-400">
                     {formatDuration(endMs - startMs)}
                   </span>
                 </div>
 
                 {/* Waterfall 瀑布条 */}
-                <div className="mt-1 h-2 bg-gray-100 rounded relative overflow-hidden"
+                <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"
                      style={{ marginLeft: `${depth * 24}px` }}>
                   <div
-                    className={`absolute h-full rounded ${style.barColor}`}
+                    className={`absolute h-full rounded-full ${style.bar}`}
                     style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
                   />
                 </div>
 
                 {/* 元数据：模型、tokens */}
                 {(obs.model || obs.promptTokens) && (
-                  <div className="mt-1 flex gap-3 text-xs text-gray-400"
+                  <div className="mt-1.5 flex flex-wrap gap-3 font-data text-xs text-slate-400"
                        style={{ paddingLeft: `${depth * 24}px` }}>
                     {obs.model && <span>模型: {obs.model}</span>}
                     {obs.promptTokens != null && (
-                      <span>tokens: {obs.promptTokens}→{obs.completionTokens}</span>
+                      <span>tokens: {obs.promptTokens} → {obs.completionTokens}</span>
                     )}
                   </div>
                 )}
 
                 {/* input/output（可展开的 JSON） */}
                 {obs.input != null && (
-                  <details className="mt-1" style={{ paddingLeft: `${depth * 24}px` }}>
-                    <summary className="text-xs text-gray-500 cursor-pointer">输入</summary>
-                    <pre className="text-xs bg-gray-50 p-2 rounded mt-1 overflow-auto max-h-40">
+                  <details className="mt-2" style={{ paddingLeft: `${depth * 24}px` }}>
+                    <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700">输入</summary>
+                    <pre className="mt-1.5 max-h-40 overflow-auto rounded-lg bg-slate-900 p-3 font-data text-xs text-slate-100">
                       {JSON.stringify(obs.input, null, 2)}
                     </pre>
                   </details>
                 )}
                 {obs.output != null && (
-                  <details className="mt-1" style={{ paddingLeft: `${depth * 24}px` }}>
-                    <summary className="text-xs text-gray-500 cursor-pointer">输出</summary>
-                    <pre className="text-xs bg-gray-50 p-2 rounded mt-1 overflow-auto max-h-40">
+                  <details className="mt-2" style={{ paddingLeft: `${depth * 24}px` }}>
+                    <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700">输出</summary>
+                    <pre className="mt-1.5 max-h-40 overflow-auto rounded-lg bg-slate-900 p-3 font-data text-xs text-slate-100">
                       {JSON.stringify(obs.output, null, 2)}
                     </pre>
                   </details>
@@ -175,24 +190,24 @@ export default async function TraceDetailPage({ params }: { params: { id: string
 
       {scores.length > 0 && (
         <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-3">评分（{scores.length}）</h2>
-          <div className="rounded-lg border bg-white overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 text-gray-600">
+          <h2 className="mb-3 text-sm font-semibold text-slate-700">评分（{scores.length}）</h2>
+          <div className="oat-card overflow-hidden">
+            <table className="oat-table">
+              <thead>
                 <tr>
-                  <th className="text-left px-4 py-2">名称</th>
-                  <th className="text-left px-4 py-2">分数</th>
-                  <th className="text-left px-4 py-2">来源</th>
-                  <th className="text-left px-4 py-2">备注</th>
+                  <th>名称</th>
+                  <th>分数</th>
+                  <th>来源</th>
+                  <th>备注</th>
                 </tr>
               </thead>
               <tbody>
                 {scores.map((s) => (
-                  <tr key={s.id} className="border-t">
-                    <td className="px-4 py-2 font-medium">{s.name}</td>
-                    <td className="px-4 py-2 text-purple-600 font-mono">{s.value}</td>
-                    <td className="px-4 py-2 text-gray-500">{s.source}</td>
-                    <td className="px-4 py-2 text-gray-500">{s.comment ?? '-'}</td>
+                  <tr key={s.id}>
+                    <td className="font-medium text-slate-800">{s.name}</td>
+                    <td className="font-data font-semibold text-violet-600">{s.value}</td>
+                    <td className="text-slate-500">{s.source}</td>
+                    <td className="text-slate-500">{s.comment ?? '-'}</td>
                   </tr>
                 ))}
               </tbody>

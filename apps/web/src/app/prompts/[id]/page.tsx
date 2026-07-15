@@ -12,11 +12,23 @@ export default async function PromptDetailPage({ params }: { params: { id: strin
 
   if (error || !data) {
     return (
-      <main className="mx-auto max-w-4xl p-8">
+      <main className="oat-page">
         <div className="mb-6">
-          <Link href="/prompts" className="text-sm text-gray-500 hover:text-gray-700">← 返回 Prompt 列表</Link>
+          <Link href="/prompts" className="oat-link-quiet">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="h-4 w-4"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+            返回 Prompt 列表
+          </Link>
         </div>
-        <p className="text-red-600">{error ?? '加载失败'}</p>
+        <div className="oat-card oat-card-pad text-rose-600">{error ?? '加载失败'}</div>
       </main>
     );
   }
@@ -25,55 +37,72 @@ export default async function PromptDetailPage({ params }: { params: { id: strin
   const activeVersion = versions.find((v) => v.isActive) ?? versions[0];
 
   return (
-    <main className="mx-auto max-w-4xl p-8">
+    <main className="oat-page">
       <div className="mb-6">
-        <Link href="/prompts" className="text-sm text-gray-500 hover:text-gray-700">← 返回 Prompt 列表</Link>
+        <Link href="/prompts" className="oat-link-quiet">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="h-4 w-4"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+          </svg>
+          返回 Prompt 列表
+        </Link>
       </div>
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">{prompt.name}</h1>
-        {prompt.description && <p className="text-gray-500 mt-1">{prompt.description}</p>}
+      <div className="oat-page-header mb-6">
+        <h1 className="oat-page-title">{prompt.name}</h1>
+        {prompt.description && <p className="oat-page-subtitle">{prompt.description}</p>}
       </div>
 
       {activeVersion && (
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-lg font-semibold">当前版本</h2>
-            <span className="text-xs font-mono px-2 py-0.5 rounded bg-green-100 text-green-700">
+        <div className="mb-8">
+          <div className="mb-2 flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-700">当前版本</h2>
+            <span className="oat-badge oat-badge-green font-data">
               v{activeVersion.version}
             </span>
             {activeVersion.labels?.map((l) => (
-              <span key={l} className="text-xs font-mono px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+              <span key={l} className="oat-badge oat-badge-blue font-data">
                 {l}
               </span>
             ))}
           </div>
-          <pre className="text-sm bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto whitespace-pre-wrap">
+          <pre className="rounded-xl bg-slate-900 p-4 font-data text-sm text-slate-100 overflow-auto whitespace-pre-wrap">
             {activeVersion.template}
           </pre>
         </div>
       )}
 
       <div>
-        <h2 className="text-lg font-semibold mb-3">版本历史（{versions.length}）</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-700">版本历史（{versions.length}）</h2>
         <div className="space-y-3">
           {versions.map((v) => (
-            <div key={v.id} className={`rounded-lg border p-4 ${v.isActive ? 'border-green-400 bg-green-50' : 'bg-white'}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-mono font-semibold">v{v.version}</span>
+            <div
+              key={v.id}
+              className={`rounded-xl border p-4 ${
+                v.isActive ? 'border-emerald-300 bg-emerald-50/50' : 'oat-card'
+              }`}
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <span className="font-data text-sm font-semibold">v{v.version}</span>
                 {v.isActive && (
-                  <span className="text-xs px-2 py-0.5 rounded bg-green-200 text-green-800">激活中</span>
+                  <span className="oat-badge oat-badge-green">激活中</span>
                 )}
                 {v.labels?.map((l) => (
-                  <span key={l} className="text-xs font-mono px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                  <span key={l} className="oat-badge oat-badge-blue font-data">
                     {l}
                   </span>
                 ))}
-                <span className="text-xs text-gray-400 ml-auto">
+                <span className="ml-auto text-xs text-slate-400">
                   {new Date(v.createdAt).toLocaleString()}
                 </span>
               </div>
-              <pre className="text-xs bg-gray-50 p-3 rounded overflow-auto max-h-40 whitespace-pre-wrap">
+              <pre className="rounded-lg bg-slate-100 p-3 font-data text-xs overflow-auto max-h-40 whitespace-pre-wrap text-slate-700">
                 {v.template}
               </pre>
             </div>

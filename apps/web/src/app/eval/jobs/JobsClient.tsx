@@ -5,13 +5,13 @@ import { useEffect, useState } from 'react';
 import { listEvalJobs } from '@/lib/api.client';
 import type { EvalJob, JobStatus } from '@/lib/api.shared';
 
-const STATUS_COLORS: Record<JobStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  running: 'bg-blue-100 text-blue-700',
-  completed: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
-  cancelled: 'bg-gray-100 text-gray-600',
-  interrupted: 'bg-gray-100 text-gray-600',
+const STATUS_BADGE: Record<JobStatus, string> = {
+  pending: 'oat-badge-amber',
+  running: 'oat-badge-blue',
+  completed: 'oat-badge-green',
+  failed: 'oat-badge-red',
+  cancelled: 'oat-badge-neutral',
+  interrupted: 'oat-badge-neutral',
 };
 
 const STATUS_LABELS: Record<JobStatus, string> = {
@@ -53,12 +53,15 @@ export function JobsClient({ sp }: { sp: { projectId?: string } }) {
   }, [projectId]);
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">评估任务</h1>
+    <main className="oat-page">
+      <div className="oat-page-header">
+        <div>
+          <h1 className="oat-page-title">评估任务</h1>
+          <p className="oat-page-subtitle">批量评估与 A/B 实验管理</p>
+        </div>
         <Link
           href={`/eval/jobs/new?projectId=${encodeURIComponent(projectId)}`}
-          className="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+          className="oat-btn oat-btn-primary oat-btn-sm"
         >
           新建评估
         </Link>
@@ -67,49 +70,62 @@ export function JobsClient({ sp }: { sp: { projectId?: string } }) {
       {error && <p className="text-red-600 mb-4">加载失败：{error}</p>}
 
       {loading ? (
-        <p className="text-gray-500">加载中...</p>
+        <p className="text-slate-500">加载中...</p>
       ) : jobs.length === 0 ? (
-        <p className="text-gray-400 py-4">暂无评估任务，创建一个试试</p>
+        <div className="oat-card oat-card-pad flex flex-col items-center justify-center text-center text-slate-400">
+          <svg
+            className="mb-3 h-8 w-8 text-slate-300"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <p>暂无评估任务，创建一个试试</p>
+        </div>
       ) : (
-        <div className="rounded-lg border bg-white overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100 text-gray-600">
+        <div className="oat-card overflow-hidden">
+          <table className="oat-table">
+            <thead>
               <tr>
-                <th className="text-left px-4 py-2">名称</th>
-                <th className="text-left px-4 py-2">状态</th>
-                <th className="text-left px-4 py-2">进度</th>
-                <th className="text-left px-4 py-2">模型</th>
-                <th className="text-left px-4 py-2">创建时间</th>
+                <th className="text-left">名称</th>
+                <th className="text-left">状态</th>
+                <th className="text-left">进度</th>
+                <th className="text-left">模型</th>
+                <th className="text-left">创建时间</th>
               </tr>
             </thead>
             <tbody>
               {jobs.map((job) => (
-                <tr key={job.id} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-2">
+                <tr key={job.id}>
+                  <td>
                     <Link
                       href={`/eval/jobs/${job.id}?projectId=${encodeURIComponent(projectId)}`}
-                      className="font-medium text-blue-600 hover:underline"
+                      className="oat-link font-medium"
                     >
                       {job.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-2">
+                  <td>
                     <span
-                      className={`text-xs font-mono px-2 py-0.5 rounded ${
-                        STATUS_COLORS[job.status] ?? 'bg-gray-100 text-gray-600'
-                      }`}
+                      className={`oat-badge font-data ${STATUS_BADGE[job.status] ?? 'oat-badge-neutral'}`}
                     >
                       {STATUS_LABELS[job.status] ?? job.status}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-gray-600">
+                  <td className="text-slate-600">
                     {job.completedItems}/{job.totalItems}
                     {job.failedItems > 0 && (
                       <span className="text-red-600 ml-1">（失败 {job.failedItems}）</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 text-gray-600 font-mono">{job.model}</td>
-                  <td className="px-4 py-2 text-gray-500">
+                  <td className="font-data text-xs">{job.model}</td>
+                  <td className="text-slate-500">
                     {new Date(job.createdAt).toLocaleString()}
                   </td>
                 </tr>

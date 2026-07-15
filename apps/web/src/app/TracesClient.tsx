@@ -56,58 +56,69 @@ export function TracesClient({
   }, [initialTraces.length, projectId]);
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Traces</h1>
-        <div className="flex items-center gap-2 text-sm">
-          <span className={`inline-block w-2 h-2 rounded-full ${sseConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
-          <span className="text-gray-500">{sseConnected ? '实时连接' : '未连接'}</span>
+    <main className="oat-page">
+      <div className="oat-page-header">
+        <div>
+          <h1 className="oat-page-title">Traces</h1>
+          <p className="oat-page-subtitle">实时追踪每一次 Agent 调用的完整链路</p>
+        </div>
+        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs">
+          <span className={`oat-dot ${sseConnected ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+          <span className={sseConnected ? 'text-emerald-700' : 'text-slate-500'}>
+            {sseConnected ? '实时连接' : '未连接'}
+          </span>
         </div>
       </div>
-      <div className="rounded-lg border bg-white overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100 text-gray-600">
+
+      <div className="oat-card overflow-hidden">
+        <table className="oat-table">
+          <thead>
             <tr>
-              <th className="text-left px-4 py-2">名称</th>
-              <th className="text-left px-4 py-2">用户</th>
-              <th className="text-left px-4 py-2">会话</th>
-              <th className="text-left px-4 py-2">时间</th>
+              <th>名称</th>
+              <th>用户</th>
+              <th>会话</th>
+              <th>时间</th>
             </tr>
           </thead>
           <tbody>
             {traces.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
-                  暂无 trace，用 SDK 上报一条试试
+                <td colSpan={4} className="!py-16 text-center">
+                  <div className="mx-auto flex max-w-xs flex-col items-center gap-2 text-slate-400">
+                    <svg className="h-10 w-10 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12h4l2-7 4 14 2-7h6" />
+                    </svg>
+                    <div className="text-sm">暂无 trace</div>
+                    <div className="text-xs text-slate-400">用 SDK 上报一条试试</div>
+                  </div>
                 </td>
               </tr>
             )}
             {traces.map((t) => (
-              <tr key={t.id} className="border-t hover:bg-gray-50">
-                <td className="px-4 py-2">
+              <tr key={t.id}>
+                <td>
                   <Link
                     href={`/traces/${t.id}?projectId=${projectId}`}
-                    className="font-medium text-blue-600 hover:underline"
+                    className="font-medium text-slate-900 hover:text-indigo-600"
                   >
                     {t.name}
                   </Link>
                 </td>
-                <td className="px-4 py-2 text-gray-500">{t.userId ?? '-'}</td>
-                <td className="px-4 py-2 text-gray-500">{t.sessionId ?? '-'}</td>
-                <td className="px-4 py-2 text-gray-500">
-                  {new Date(t.timestamp).toLocaleString()}
-                </td>
+                <td className="font-data text-xs text-slate-500">{t.userId ?? '-'}</td>
+                <td className="font-data text-xs text-slate-500">{t.sessionId ?? '-'}</td>
+                <td className="text-slate-500">{new Date(t.timestamp).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
       {nextCursor && (
-        <div className="mt-4 text-center">
+        <div className="mt-5 text-center">
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50"
+            className="oat-btn oat-btn-ghost"
           >
             {loadingMore ? '加载中...' : '加载更多'}
           </button>

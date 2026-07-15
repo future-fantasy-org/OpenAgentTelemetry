@@ -27,13 +27,21 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     }
   }
 
+  const showNav = !!(me && navProjects.length > 0);
+
   return (
     <html lang="zh">
-      <body className="min-h-screen bg-gray-50 text-gray-900">
-        {me && navProjects.length > 0 && (
-          <Nav projects={navProjects} user={me.user} />
-        )}
-        {children}
+      <body
+        className="oat-app oat-content-bg font-sans antialiased"
+        style={showNav ? { ['--oat-sidebar-w' as string]: '256px' } : undefined}
+      >
+        {showNav && <Nav projects={navProjects} user={me.user} />}
+        <div
+          className="oat-content"
+          style={showNav ? { paddingLeft: 'var(--oat-sidebar-w)' } : undefined}
+        >
+          {children}
+        </div>
       </body>
     </html>
   );

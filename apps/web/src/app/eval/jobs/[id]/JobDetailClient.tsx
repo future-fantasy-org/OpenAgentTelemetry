@@ -5,13 +5,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { cancelEvalJob, getEvalJob, listJobItems } from '@/lib/api.client';
 import type { EvalJob, EvalJobItem, JobStatus } from '@/lib/api.shared';
 
-const STATUS_COLORS: Record<JobStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  running: 'bg-blue-100 text-blue-700',
-  completed: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
-  cancelled: 'bg-gray-100 text-gray-600',
-  interrupted: 'bg-gray-100 text-gray-600',
+const STATUS_BADGE: Record<JobStatus, string> = {
+  pending: 'oat-badge-amber',
+  running: 'oat-badge-blue',
+  completed: 'oat-badge-green',
+  failed: 'oat-badge-red',
+  cancelled: 'oat-badge-neutral',
+  interrupted: 'oat-badge-neutral',
 };
 
 const STATUS_LABELS: Record<JobStatus, string> = {
@@ -23,11 +23,11 @@ const STATUS_LABELS: Record<JobStatus, string> = {
   interrupted: '已中断',
 };
 
-const ITEM_STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  running: 'bg-blue-100 text-blue-700',
-  success: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
+const ITEM_STATUS_BADGE: Record<string, string> = {
+  pending: 'oat-badge-amber',
+  running: 'oat-badge-blue',
+  success: 'oat-badge-green',
+  failed: 'oat-badge-red',
 };
 
 export function JobDetailClient({
@@ -108,36 +108,43 @@ export function JobDetailClient({
   const isActive = job?.status === 'pending' || job?.status === 'running';
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
+    <main className="oat-page">
       <div className="mb-6">
         <Link
           href={`/eval/jobs?projectId=${encodeURIComponent(projectId)}`}
-          className="text-sm text-gray-500 hover:text-gray-700"
+          className="oat-link-quiet inline-flex items-center gap-1"
         >
-          ← 返回任务列表
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          返回任务列表
         </Link>
       </div>
 
       {error && <p className="text-red-600 mb-4">操作失败：{error}</p>}
 
       {loading ? (
-        <p className="text-gray-500">加载中...</p>
+        <p className="text-slate-500">加载中...</p>
       ) : !job ? (
-        <p className="text-gray-400">任务不存在</p>
+        <p className="text-slate-400">任务不存在</p>
       ) : (
         <>
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold">{job.name}</h1>
-              <div className="mt-2 flex gap-4 text-sm text-gray-500">
+              <h1 className="oat-page-title">{job.name}</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-slate-500">
                 <span
-                  className={`text-xs font-mono px-2 py-0.5 rounded ${
-                    STATUS_COLORS[job.status] ?? 'bg-gray-100 text-gray-600'
-                  }`}
+                  className={`oat-badge font-data ${STATUS_BADGE[job.status] ?? 'oat-badge-neutral'}`}
                 >
                   {STATUS_LABELS[job.status] ?? job.status}
                 </span>
-                <span className="font-mono">{job.model}</span>
+                <span className="font-data">{job.model}</span>
                 <span>并发 {job.concurrency}</span>
               </div>
             </div>
@@ -145,7 +152,7 @@ export function JobDetailClient({
               <button
                 onClick={handleCancel}
                 disabled={cancelling}
-                className="px-3 py-1 text-sm rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                className="oat-btn oat-btn-danger oat-btn-sm"
               >
                 {cancelling ? '取消中...' : '取消任务'}
               </button>
@@ -153,13 +160,13 @@ export function JobDetailClient({
           </div>
 
           {job.errorMessage && (
-            <p className="text-red-600 mb-4 bg-red-50 border border-red-200 rounded px-3 py-2 text-sm">
+            <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 mb-4">
               {job.errorMessage}
             </p>
           )}
 
           <div className="mb-6">
-            <div className="flex justify-between text-sm text-gray-600 mb-1">
+            <div className="flex justify-between text-sm text-slate-600 mb-1">
               <span>进度</span>
               <span>
                 {completedItems}/{totalItems}（{pct}%）
@@ -168,9 +175,9 @@ export function JobDetailClient({
                 )}
               </span>
             </div>
-            <div className="h-3 bg-gray-100 rounded overflow-hidden">
+            <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
               <div
-                className="h-full bg-blue-500 rounded transition-all"
+                className="h-full bg-indigo-500 rounded-full transition-all"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -179,25 +186,23 @@ export function JobDetailClient({
           {job.summary && Object.keys(job.summary).length > 0 && (
             <section className="mb-6">
               <h2 className="text-lg font-semibold mb-3">评估摘要</h2>
-              <div className="rounded-lg border bg-white overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-100 text-gray-600">
+              <div className="oat-card overflow-hidden">
+                <table className="oat-table">
+                  <thead>
                     <tr>
-                      <th className="text-left px-4 py-2">评估器</th>
-                      <th className="text-left px-4 py-2">平均分</th>
-                      <th className="text-left px-4 py-2">通过率</th>
-                      <th className="text-left px-4 py-2">数量</th>
+                      <th className="text-left">评估器</th>
+                      <th className="text-left">平均分</th>
+                      <th className="text-left">通过率</th>
+                      <th className="text-left">数量</th>
                     </tr>
                   </thead>
                   <tbody>
                     {Object.entries(job.summary).map(([name, s]) => (
-                      <tr key={name} className="border-t hover:bg-gray-50">
-                        <td className="px-4 py-2 font-medium">{name}</td>
-                        <td className="px-4 py-2 font-mono">{s.avg.toFixed(2)}</td>
-                        <td className="px-4 py-2 font-mono">
-                          {(s.passRate * 100).toFixed(1)}%
-                        </td>
-                        <td className="px-4 py-2 text-gray-500">{s.count}</td>
+                      <tr key={name}>
+                        <td className="font-medium">{name}</td>
+                        <td className="font-data">{s.avg.toFixed(2)}</td>
+                        <td className="font-data">{(s.passRate * 100).toFixed(1)}%</td>
+                        <td className="text-slate-500">{s.count}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -208,57 +213,55 @@ export function JobDetailClient({
 
           <section>
             <h2 className="text-lg font-semibold mb-3">执行明细（{items.length}）</h2>
-            <div className="rounded-lg border bg-white overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-100 text-gray-600">
+            <div className="oat-card overflow-hidden">
+              <table className="oat-table">
+                <thead>
                   <tr>
-                    <th className="text-left px-4 py-2">状态</th>
-                    <th className="text-left px-4 py-2">耗时</th>
-                    <th className="text-left px-4 py-2">Trace</th>
-                    <th className="text-left px-4 py-2">错误</th>
+                    <th className="text-left">状态</th>
+                    <th className="text-left">耗时</th>
+                    <th className="text-left">Trace</th>
+                    <th className="text-left">错误</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
+                      <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
                         暂无执行记录
                       </td>
                     </tr>
                   )}
                   {items.map((it) => (
-                    <tr key={it.id} className="border-t hover:bg-gray-50">
-                      <td className="px-4 py-2">
+                    <tr key={it.id}>
+                      <td>
                         <span
-                          className={`text-xs font-mono px-2 py-0.5 rounded ${
-                            ITEM_STATUS_COLORS[it.status] ?? 'bg-gray-100 text-gray-600'
-                          }`}
+                          className={`oat-badge font-data ${ITEM_STATUS_BADGE[it.status] ?? 'oat-badge-neutral'}`}
                         >
                           {it.status}
                         </span>
                       </td>
-                      <td className="px-4 py-2 font-mono text-gray-600">
+                      <td className="font-data text-slate-600">
                         {it.latencyMs != null ? `${it.latencyMs}ms` : '-'}
                       </td>
-                      <td className="px-4 py-2">
+                      <td>
                         {it.traceId ? (
                           <Link
                             href={`/traces/${it.traceId}?projectId=${encodeURIComponent(
                               projectId,
                             )}`}
-                            className="text-blue-600 hover:underline font-mono text-xs"
+                            className="oat-link font-data text-xs"
                           >
                             {it.traceId.slice(0, 8)}
                           </Link>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          <span className="text-slate-400">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-2">
+                      <td>
                         {it.errorMessage ? (
                           <span className="text-red-600 text-xs">{it.errorMessage}</span>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          <span className="text-slate-400">-</span>
                         )}
                       </td>
                     </tr>

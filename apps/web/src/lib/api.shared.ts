@@ -292,6 +292,16 @@ export const API_BASE = isServer
   ? (process.env.SERVER_URL ?? 'http://localhost:3001')
   : '';
 
+// 限流错误：429 Too Many Requests
+export class RateLimitError extends Error {
+  retryAfter: number;
+  constructor(message: string, retryAfter: number) {
+    super(message);
+    this.name = 'RateLimitError';
+    this.retryAfter = retryAfter;
+  }
+}
+
 export async function handleResponse<T = unknown>(res: Response): Promise<T> {
   if (res.status === 401) {
     if (isServer) {
@@ -302,6 +312,16 @@ export async function handleResponse<T = unknown>(res: Response): Promise<T> {
       window.location.href = `/login?next=${encodeURIComponent(next)}`;
       throw new Error('SESSION_EXPIRED');
     }
+  }
+  if (res.status === 429) {
+    // 优先用 Retry-After 头，否则默认 60s
+    const retryAfter = parseInt(res.headers.get('retry-after') ?? '60', 10) || 60;
+    let msg = '请求过于频繁，请稍后再试';
+    try {
+      const body = await res.json();
+      msg = body?.error?.message ?? body?.message ?? msg;
+    } catch {}
+    throw new RateLimitError(msg, retryAfter);
   }
   if (!res.ok) {
     let msg = `请求失败: ${res.status}`;
